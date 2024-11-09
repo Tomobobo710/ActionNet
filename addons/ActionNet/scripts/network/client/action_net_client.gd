@@ -21,11 +21,6 @@ var physics_objects: Node
 var last_processed_sequence: int = -1
 var is_sending_inputs: bool = false
 
-#func _process(delta: float) -> void:
-	#if connection_manager:
-		#if connection_manager.handshake_in_progress:
-			#connection_manager.process_handshake(delta)
-
 func connect_to_server(ip: String, port: int) -> Error:
 	network = ENetMultiplayerPeer.new()
 	print("[ActionNetClient] Attempting to connect to server at ", ip, ":", port)
@@ -187,17 +182,15 @@ func _on_sequence_adjusted(new_offset: int, reason: String) -> void:
 	emit_signal("sequence_adjusted", new_offset, reason)
 
 func _on_tick(clock_sequence: int) -> void:
-	connection_manager.increment_sequence()
+	connection_manager.update()
 	poll()
-	
+	handle_input()
+
+func handle_input() -> void:
 	if is_sending_inputs:
 		connection_manager.check_sequence_adjustment()
 		send_input()
-	
-	# Regular ping updates handled by connection manager
-	if not connection_manager.handshake_in_progress:
-		connection_manager.process_ping_timer(1.0)
-		
+
 func _on_poll_timer_timeout() -> void:
 	if client_multiplayer and client_multiplayer.has_multiplayer_peer():
 		client_multiplayer.poll()

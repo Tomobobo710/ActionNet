@@ -33,16 +33,29 @@ func store_input(client_id: int, input: Dictionary) -> void:
 
 # Get input for a specific sequence number
 func get_input_for_sequence(client_id: int, sequence: int) -> Dictionary:
+	# Case 1: No inputs exist for this client
 	if not stored_inputs.has(client_id) or stored_inputs[client_id].is_empty():
+		print("No inputs found for client ", client_id)
 		return {}
 	
-	# Try to find input matching the current sequence
+	var most_recent_before = null
+	
+	# Look for exact match and track most recent before
 	for input_data in stored_inputs[client_id]:
 		if input_data.sequence == sequence:
+			#print("Found exact sequence match: ", sequence)
 			return input_data.input
+		elif input_data.sequence < sequence:
+			most_recent_before = input_data
 	
-	# If no matching sequence found, use most recent input
-	return stored_inputs[client_id][-1].input
+	# Case 3: We found an input before the sequence
+	if most_recent_before != null:
+		print("Using most recent input before sequence ", sequence, " (found: ", most_recent_before.sequence, ")")
+		return most_recent_before.input
+		
+	# Case 4: No earlier inputs found
+	print("No inputs found before sequence ", sequence)
+	return {}
 
 # Get the most recent input for a client
 func get_most_recent_input(client_id: int) -> Dictionary:

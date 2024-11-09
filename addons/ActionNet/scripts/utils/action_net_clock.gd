@@ -5,7 +5,7 @@ class_name ActionNetClock
 
 signal tick(sequence: int)
 
-var tick_rate: float = 16.0
+var tick_rate: int = 16
 var clock_sequence: int = 0 
 var clock_timer: Timer
 
@@ -23,7 +23,7 @@ func on_tick() -> void:
 	emit_signal("tick", clock_sequence)
 
 # API to adjust the tick rate
-func set_tick_rate(new_rate: float) -> void:
+func set_tick_rate(new_rate: int) -> void:
 	tick_rate = new_rate
 	clock_timer.wait_time = tick_rate / 1000.0
 

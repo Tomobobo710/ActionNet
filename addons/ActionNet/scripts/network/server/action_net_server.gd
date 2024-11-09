@@ -122,10 +122,10 @@ func _on_tick(clock_sequence: int) -> void:
 	for client_object in client_objects.get_children():
 		var client_id = int(str(client_object.name))
 		var input = input_registry.get_input_for_sequence(client_id, world_manager.sequence)
-		client_object.apply_input(input)
+		client_object.apply_input(input, clock.tick_rate)
 	
 	# Update world state
-	world_manager.update(16)
+	world_manager.update(clock.tick_rate)
 	
 	# Send world state to all clients
 	if not clients.is_empty():

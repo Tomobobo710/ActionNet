@@ -47,8 +47,8 @@ func initialize(new_client):
 	add_child(sequence_adjuster)
 	sequence_adjuster.sequence_adjusted.connect(_on_sequence_adjusted)
 
-func initialize_sequence_tracking(initial_server_sequence: int, initial_rtt: int) -> void:
-	sequence_adjuster.initialize(initial_server_sequence, initial_rtt)
+func initialize_sequence_tracking(initial_server_sequence: int, initial_rtt_threshold: int) -> void:
+	sequence_adjuster.initialize(initial_server_sequence, initial_rtt_threshold)
 
 func process_ping_timer() -> void:
 	if handshake_in_progress:
@@ -137,15 +137,11 @@ func complete_handshake() -> void:
 		fail_handshake("Client object not confirmed in world state")
 		return
 	
-	# Calculate initial RTT
-	var initial_rtt = calculate_average_rtt()
-	
 	# Initialize sequence tracking
-	initialize_sequence_tracking(client.last_processed_sequence, initial_rtt)
+	initialize_sequence_tracking(client.last_processed_sequence, client.clock.tick_rate)
 	
 	print("[ClientConnectionManager] Handshake completed successfully!")
 	print("[ClientConnectionManager] Running ", sequence_adjuster.frames_ahead, " frames ahead of server")
-	print("[ClientConnectionManager] Initial RTT: ", initial_rtt, "ms")
 	emit_signal("handshake_completed")
 
 func fail_handshake(reason: String) -> void:
@@ -173,8 +169,10 @@ func update_server_sequence(new_server_sequence: int) -> void:
 func get_client_sequence() -> int:
 	return sequence_adjuster.get_client_sequence()
 
-func increment_sequence() -> void:
+func update() -> void:
 	sequence_adjuster.increment_sequence()
+	if not handshake_in_progress:
+		process_ping_timer()
 
 func check_sequence_adjustment() -> void:
 	sequence_adjuster.check_sequence_adjustment()

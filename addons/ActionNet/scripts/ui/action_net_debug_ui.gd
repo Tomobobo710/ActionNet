@@ -299,8 +299,8 @@ func _process(delta):
 	
 	if client:
 		# Add the current RTT sample to the graph
-		if client.current_rtt > 0:
-			rtt_graph.add_sample(client.current_rtt)
+		if client.connection_manager.sequence_adjuster.current_rtt > 0:
+			rtt_graph.add_sample(client.connection_manager.sequence_adjuster.current_rtt)
 		update_client_stats(update_heavy_stats)
 	
 	if server:
@@ -325,64 +325,64 @@ func update_client_stats(update_heavy_stats: bool):
 	
 	# Handshake Information
 	var handshake_info = "Handshake Status:"
-	handshake_info += "\nIn Progress: " + str(client.handshake_in_progress)
-	if client.handshake_in_progress:
-		handshake_info += "\nTimer: " + str(snappedf(client.handshake_timer, 0.01)) + "/" + str(client.handshake_duration)
-		handshake_info += "\nPings Sent: " + str(client.handshake_pings_sent) + "/" + str(client.handshake_pings_total)
-		handshake_info += "\nSpawn Requested: " + str(client.spawn_requested)
-		handshake_info += "\nClient Object Confirmed: " + str(client.client_object_confirmed)
+	handshake_info += "\nIn Progress: " + str(client.connection_manager.handshake_in_progress)
+	if client.connection_manager.handshake_in_progress:
+		handshake_info += "\nTimer: " + str(snappedf(client.connection_manager.handshake_timer, 0.01)) + "/" + str(client.connection_manager.handshake_duration)
+		handshake_info += "\nPings Sent: " + str(client.connection_manager.handshake_pings_sent) + "/" + str(client.connection_manager.handshake_pings_total)
+		handshake_info += "\nSpawn Requested: " + str(client.connection_manager.spawn_requested)
+		handshake_info += "\nClient Object Confirmed: " + str(client.connection_manager.client_object_confirmed)
 	handshake_label.text = handshake_info
 	
 	# Sequence and Sync Information
-	client_sequence_label.text = "Client Sequence: " + str(client.client_sequence)
-	frame_ahead_label.text = "Frames Ahead: " + str(client.frames_ahead)
+	client_sequence_label.text = "Client Sequence: " + str(client.connection_manager.sequence_adjuster.client_sequence)
+	frame_ahead_label.text = "Frames Ahead: " + str(client.connection_manager.sequence_adjuster.frames_ahead)
 	
 	var sequence_info = "Sequence Sync Info:"
-	sequence_info += "\nServer Sequence Estimate: " + str(client.server_sequence_estimate)
+	sequence_info += "\nServer Sequence Estimate: " + str(client.connection_manager.sequence_adjuster.server_sequence_estimate)
 	sequence_info += "\nLast Processed Sequence: " + str(client.last_processed_sequence)
-	sequence_info += "\nMin Frames Ahead: " + str(client.min_frames_ahead)
-	sequence_info += "\nMax Frames Ahead: " + str(client.max_frames_ahead)
-	sequence_info += "\nBaseline RTT: " + str(client.baseline_rtt) + "ms"
+	sequence_info += "\nMin Frames Ahead: " + str(client.connection_manager.sequence_adjuster.min_frames_ahead)
+	sequence_info += "\nMax Frames Ahead: " + str(client.connection_manager.sequence_adjuster.max_frames_ahead)
+	sequence_info += "\nBaseline RTT: " + str(client.connection_manager.sequence_adjuster.baseline_rtt) + "ms"
 	sequence_sync_label.text = sequence_info
 	
 	# Sync Status
-	var sync_status = "Synced" if !client.handshake_in_progress else "Initial sync in progress"
+	var sync_status = "Synced" if !client.connection_manager.handshake_in_progress else "Initial sync in progress"
 	sync_status_label.text = "Sync Status: " + sync_status
 	sync_status_label.add_theme_color_override("font_color", 
-		THEME_COLORS.success if !client.handshake_in_progress else THEME_COLORS.warning)
+		THEME_COLORS.success if !client.connection_manager.handshake_in_progress else THEME_COLORS.warning)
 	
 	# RTT Information
-	var rtt_info = "RTT: " + str(client.current_rtt) + "ms"
-	rtt_info += "\nSamples: " + str(client.rtt_samples.size()) + "/" + str(client.max_rtt_samples)
-	if not client.rtt_samples.is_empty():
+	var rtt_info = "RTT: " + str(client.connection_manager.sequence_adjuster.current_rtt) + "ms"
+	rtt_info += "\nSamples: " + str(client.connection_manager.rtt_samples.size()) + "/" + str(client.connection_manager.max_rtt_samples)
+	if not client.connection_manager.rtt_samples.is_empty():
 		var avg_rtt = 0
-		for rtt in client.rtt_samples:
+		for rtt in client.connection_manager.rtt_samples:
 			avg_rtt += rtt
-		avg_rtt = avg_rtt / client.rtt_samples.size()
+		avg_rtt = avg_rtt / client.connection_manager.rtt_samples.size()
 		rtt_info += "\nAverage RTT: " + str(avg_rtt) + "ms"
 	rtt_label.text = rtt_info
 	
 	# RTT Tracking Details
 	var rtt_tracking = "RTT Tracking:"
-	rtt_tracking += "\nWindow Size: " + str(client.rtt_window.size()) + "/" + str(client.rtt_window_size)
-	rtt_tracking += "\nRTT Threshold: " + str(client.rtt_threshold_ms) + "ms"
+	rtt_tracking += "\nWindow Size: " + str(client.connection_manager.sequence_adjuster.rtt_window.size()) + "/" + str(client.connection_manager.sequence_adjuster.rtt_window_size)
+	rtt_tracking += "\nRTT Threshold: " + str(client.connection_manager.sequence_adjuster.rtt_threshold_ms) + "ms"
 	rtt_tracking_label.text = rtt_tracking
 	
 	# Sequence Adjustment Stats
 	var adjustment_info = "Sequence Adjustment:"
-	adjustment_info += "\nEnabled: " + str(client.sequence_adjustment_enabled)
-	adjustment_info += "\nCooldown: " + str(client.adjustment_cooldown) + "s"
-	if client.last_adjustment_time > 0:
-		var time_since = Time.get_ticks_msec() / 1000.0 - client.last_adjustment_time
+	adjustment_info += "\nEnabled: " + str(client.connection_manager.sequence_adjuster.sequence_adjustment_enabled)
+	adjustment_info += "\nCooldown: " + str(client.connection_manager.sequence_adjuster.adjustment_cooldown) + "s"
+	if client.connection_manager.sequence_adjuster.last_adjustment_time > 0:
+		var time_since = Time.get_ticks_msec() / 1000.0 - client.connection_manager.sequence_adjuster.last_adjustment_time
 		adjustment_info += "\nTime Since Last: " + str(snappedf(time_since, 0.1)) + "s"
 	adjustment_stats_label.text = adjustment_info
 	
 	# Network Stats
 	var net_stats = "Network Stats:"
 	net_stats += "\nSending Inputs: " + str(client.is_sending_inputs)
-	net_stats += "\nPing Timer: " + str(snappedf(client.ping_timer, 0.1)) + "/" + str(client.ping_interval)
-	if client.last_ping_time > 0:
-		net_stats += "\nLast Ping: " + str(Time.get_ticks_msec() - client.last_ping_time) + "ms ago"
+	net_stats += "\nPing Timer: " + str(snappedf(client.connection_manager.ping_timer, 0.1)) + "/" + str(client.connection_manager.ping_interval)
+	if client.connection_manager.last_ping_time > 0:
+		net_stats += "\nLast Ping: " + str(Time.get_ticks_msec() - client.connection_manager.last_ping_time) + "ms ago"
 	network_stats_label.text = net_stats
 	
 	# World Stats

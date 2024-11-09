@@ -23,8 +23,8 @@ var rtt_window: Array = []  # Recent RTT values for trend analysis
 var rtt_window_size: int = 30  # How many RTT samples to keep for trend analysis
 var baseline_rtt: int = 0  # RTT value when initialized
 
-func initialize(initial_server_sequence: int, initial_rtt: int) -> void:
-	baseline_rtt = initial_rtt
+func initialize(initial_server_sequence: int, initial_rtt_threshold: int) -> void:
+	rtt_threshold_ms = initial_rtt_threshold
 	frames_ahead = calculate_initial_frames_ahead()
 	server_sequence_estimate = initial_server_sequence
 	client_sequence = server_sequence_estimate + frames_ahead

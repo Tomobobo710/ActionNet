@@ -112,6 +112,6 @@ func set_collision_layer(layer: int):
 	collision_layer = layer
 	collision_mask = layer
 
-func apply_input(_input: Dictionary):
+func apply_input(_input: Dictionary, tick_rate: int):
 	# To be implemented in child classes if needed
 	pass

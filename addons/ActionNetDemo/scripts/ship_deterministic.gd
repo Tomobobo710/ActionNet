@@ -11,7 +11,7 @@ func _init():
 	ANGULAR_MASS = 0
 	sprite_texture = load("res://ship_texture.png")
 
-func apply_input(input: Dictionary):
+func apply_input(input: Dictionary, tick_rate: int):
 	# Default values for input actions
 	var rotate_right: bool = false
 	var rotate_left: bool = false
@@ -49,4 +49,4 @@ func apply_input(input: Dictionary):
 			thrust_direction.x * thrust * THRUST_FORCE,
 			thrust_direction.y * thrust * THRUST_FORCE
 		)
-		fixed_velocity = Physics.apply_force(fixed_velocity, thrust_force, MASS, 16)
+		fixed_velocity = Physics.apply_force(fixed_velocity, thrust_force, MASS, tick_rate)
