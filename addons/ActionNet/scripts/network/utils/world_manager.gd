@@ -1,4 +1,3 @@
-# res://addons/ActionNet/scripts/network/utils/world_manager.gd
 extends Node
 class_name WorldManager
 
@@ -11,12 +10,16 @@ var client_objects: Node
 var physics_objects: Node
 var collision_manager: CollisionManager
 var manager: ActionNetManager
+var world_registry: WorldRegistry
 
-# Constructor
 func initialize(world_node: Node, collision_mgr: CollisionManager = null, net_manager: ActionNetManager = null) -> void:
 	world = world_node
 	collision_manager = collision_mgr
 	manager = net_manager
+	
+	# Initialize world registry
+	world_registry = WorldRegistry.new()
+	add_child(world_registry)
 	
 	# Get or create container nodes
 	client_objects = world.find_child("Client Objects", true, false)
@@ -56,7 +59,6 @@ func spawn_client_object(id: int) -> void:
 			collision_manager.register_object(client_object)
 		emit_signal("object_spawned", client_object, "client")
 
-# Updated spawn physics object method
 func spawn_physics_object(object_type: String) -> void:
 	if not manager:
 		return
@@ -120,8 +122,14 @@ func update(delta: float) -> void:
 	if collision_manager:
 		collision_manager.check_and_resolve_collisions()
 	
+	# Get current state
+	var current_state = get_world_state()
+	
+	# Store the state
+	world_registry.add_state(current_state)
+	
 	# Emit the updated state
-	emit_signal("state_updated", get_world_state())
+	emit_signal("state_updated", current_state)
 
 func apply_state(state: Dictionary) -> void:
 	sequence = state["sequence"]
@@ -175,3 +183,44 @@ func get_client_object_positions() -> Dictionary:
 	for client_object in client_objects.get_children():
 		positions[client_object.name] = client_object.position
 	return positions
+
+# Methods for accessing stored states
+func get_state_for_sequence(sequence: int) -> Dictionary:
+	return world_registry.get_state_for_sequence(sequence)
+
+func get_state_for_timestamp(timestamp: int) -> Dictionary:
+	return world_registry.get_state_for_timestamp(timestamp)
+
+func clear_stored_states() -> void:
+	world_registry.clear_states()
+
+func get_oldest_stored_state() -> Dictionary:
+	return world_registry.get_oldest_state()
+
+func get_newest_stored_state() -> Dictionary:
+	return world_registry.get_newest_state()
+
+func get_stored_state_count() -> int:
+	return world_registry.get_state_count()
+
+func cleanup() -> void:
+	if world_registry:
+		world_registry.cleanup()
+		world_registry.queue_free()
+		world_registry = null
+	
+	if collision_manager:
+		collision_manager = null
+	
+	if client_objects:
+		for client in client_objects.get_children():
+			client.queue_free()
+	
+	if physics_objects:
+		for object in physics_objects.get_children():
+			object.queue_free()
+	
+	manager = null
+	world = null
+	client_objects = null
+	physics_objects = null
