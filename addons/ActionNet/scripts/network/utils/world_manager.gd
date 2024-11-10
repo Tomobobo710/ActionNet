@@ -1,3 +1,4 @@
+# res://addons/ActionNet/scripts/network/utils/world_manager.gd
 extends Node
 class_name WorldManager
 
@@ -10,7 +11,7 @@ var client_objects: Node
 var physics_objects: Node
 var collision_manager: CollisionManager
 var manager: ActionNetManager
-var world_registry: WorldRegistry
+var world_registry: WorldStateRegistry
 
 func initialize(world_node: Node, collision_mgr: CollisionManager = null, net_manager: ActionNetManager = null) -> void:
 	world = world_node
@@ -18,7 +19,7 @@ func initialize(world_node: Node, collision_mgr: CollisionManager = null, net_ma
 	manager = net_manager
 	
 	# Initialize world registry
-	world_registry = WorldRegistry.new()
+	world_registry = WorldStateRegistry.new()
 	add_child(world_registry)
 	
 	# Get or create container nodes

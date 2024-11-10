@@ -1,4 +1,4 @@
-# res://addons/ActionNetDemo/scripts/ball_deterministic.gd
+# res://addons/ActionNetDemo/scripts/ship_deterministic.gd
 extends ActionNetPhysObject2D
 
 class_name Ship

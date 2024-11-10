@@ -1,4 +1,4 @@
-# physics_tables.gd
+# res://addons/ActionNet/scripts/utils/physics/physics_tables.gd
 class_name PhysicsTables
 
 const TABLE_SIZE = 360

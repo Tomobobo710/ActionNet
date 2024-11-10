@@ -1,3 +1,4 @@
+# res://addons/ActionNet/bootstrap/action_net.gd
 @tool
 extends EditorPlugin
 
