@@ -41,6 +41,18 @@ func connect_to_server(ip: String, port: int) -> Error:
 		emit_signal("connection_failed")
 		return error
 
+func setup_multiplayer() -> void:
+	client_multiplayer = MultiplayerAPI.create_default_interface()
+	client_multiplayer.multiplayer_peer = network
+	client_multiplayer.set_root_path(get_path())
+	get_tree().set_multiplayer(client_multiplayer, self.get_path())
+	
+	client_multiplayer.connected_to_server.connect(_on_connected_to_server)
+	client_multiplayer.connection_failed.connect(_on_connection_failed)
+	client_multiplayer.server_disconnected.connect(_on_server_disconnected)
+	
+	manager.client_multiplayer_api = client_multiplayer
+
 func setup_client_world() -> void:
 	# Create client predicted world
 	client_world = manager.get_world_scene().instantiate()
@@ -54,48 +66,28 @@ func setup_client_world() -> void:
 	# Initialize managers for prediction
 	collision_manager = CollisionManager.new()
 	world_manager = WorldManager.new()
-	world_manager.initialize(client_world, collision_manager)
+	world_manager.initialize(client_world, collision_manager, manager)
+	# Connect to debug signals if needed
+	world_manager.object_spawned.connect(_on_object_spawned)
 	add_child(world_manager)
 	
 	# Register world objects and auto-spawn
 	world_manager.register_existing_physics_objects()
-	auto_spawn_physics_objects()
+	world_manager.auto_spawn_physics_objects()
 	
 	# Spawn client-side client object
-	spawn_client_object(client_multiplayer.get_unique_id())
+	world_manager.spawn_client_object(client_multiplayer.get_unique_id())
 	
 	# Create the received state manager
 	received_state_manager = ReceivedStateManager.new(self)
 	add_child(received_state_manager)
 	received_state_manager.setup()
 
-func spawn_client_object(id: int):
-	var client_object_scene = manager.get_client_object_scene()
-	if client_object_scene:
-		world_manager.spawn_client_object(id, client_object_scene)
-		print("[ActionNetClient] Spawned client-side client object for client id: ", id)
+func _on_object_spawned(object: Node, type: String) -> void:
+	if type == "client":
+		print("[ActionNetClient] Spawned client-side client object for client id: ", object.name)
 	else:
-		print("[ActionNetClient] Error: No client object registered")
-
-func auto_spawn_physics_objects() -> void:
-	for object_type in manager.registered_physics_objects.keys():
-		var scene = manager.get_physics_object_scene(object_type)
-		var temp_instance = scene.instantiate()
-		if temp_instance.auto_spawn:
-			world_manager.spawn_physics_object(object_type, scene)
-		temp_instance.queue_free()
-
-func setup_multiplayer() -> void:
-	client_multiplayer = MultiplayerAPI.create_default_interface()
-	client_multiplayer.multiplayer_peer = network
-	client_multiplayer.set_root_path(get_path())
-	get_tree().set_multiplayer(client_multiplayer, self.get_path())
-	
-	client_multiplayer.connected_to_server.connect(_on_connected_to_server)
-	client_multiplayer.connection_failed.connect(_on_connection_failed)
-	client_multiplayer.server_disconnected.connect(_on_server_disconnected)
-	
-	manager.client_multiplayer_api = client_multiplayer
+		print("[ActionNetClient] Spawned object of type: ", type)
 
 func setup_clock() -> void:
 	clock = ActionNetClock.new()

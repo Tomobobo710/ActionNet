@@ -3,17 +3,20 @@ extends Node
 class_name WorldManager
 
 signal state_updated(state: Dictionary)
+signal object_spawned(object: Node, type: String)
 
 var sequence: int = 0
 var world: Node
 var client_objects: Node
 var physics_objects: Node
 var collision_manager: CollisionManager
+var manager: ActionNetManager
 
-# Constructor that takes the world node and collision manager
-func initialize(world_node: Node, collision_mgr: CollisionManager = null) -> void:
+# Constructor
+func initialize(world_node: Node, collision_mgr: CollisionManager = null, net_manager: ActionNetManager = null) -> void:
 	world = world_node
 	collision_manager = collision_mgr
+	manager = net_manager
 	
 	# Get or create container nodes
 	client_objects = world.find_child("Client Objects", true, false)
@@ -27,6 +30,45 @@ func initialize(world_node: Node, collision_mgr: CollisionManager = null) -> voi
 		physics_objects = Node2D.new()
 		physics_objects.name = "2D Physics Objects"
 		world.add_child(physics_objects)
+
+func auto_spawn_physics_objects() -> void:
+	if not manager:
+		return
+		
+	for object_type in manager.registered_physics_objects.keys():
+		var scene = manager.get_physics_object_scene(object_type)
+		var temp_instance = scene.instantiate()
+		if temp_instance.auto_spawn:
+			spawn_physics_object(object_type)
+		temp_instance.queue_free()
+
+func spawn_client_object(id: int) -> void:
+	if not manager:
+		return
+		
+	var client_object_scene = manager.get_client_object_scene()
+	if client_object_scene and not client_objects.has_node(str(id)):
+		var client_object = client_object_scene.instantiate()
+		client_object.name = str(id)
+		client_object.set_multiplayer_authority(id)
+		client_objects.add_child(client_object)
+		if collision_manager:
+			collision_manager.register_object(client_object)
+		emit_signal("object_spawned", client_object, "client")
+
+# Updated spawn physics object method
+func spawn_physics_object(object_type: String) -> void:
+	if not manager:
+		return
+		
+	var object_scene = manager.get_physics_object_scene(object_type)
+	if object_scene:
+		var physics_object = object_scene.instantiate()
+		physics_object.set_meta("type", object_type)
+		physics_objects.add_child(physics_object)
+		if collision_manager:
+			collision_manager.register_object(physics_object)
+		emit_signal("object_spawned", physics_object, object_type)
 
 func get_world_state() -> Dictionary:
 	var state = {
@@ -117,22 +159,6 @@ func _cleanup_objects(container: Node, updated_objects: Array) -> void:
 			if collision_manager:
 				collision_manager.unregister_object(object)
 			object.queue_free()
-
-func spawn_client_object(id: int, object_scene: PackedScene) -> void:
-	if not client_objects.has_node(str(id)):
-		var client_object = object_scene.instantiate()
-		client_object.name = str(id)
-		client_object.set_multiplayer_authority(id)
-		client_objects.add_child(client_object)
-		if collision_manager:
-			collision_manager.register_object(client_object)
-
-func spawn_physics_object(object_type: String, object_scene: PackedScene) -> void:
-	var physics_object = object_scene.instantiate()
-	physics_object.set_meta("type", object_type)
-	physics_objects.add_child(physics_object)
-	if collision_manager:
-		collision_manager.register_object(physics_object)
 
 func register_existing_physics_objects() -> void:
 	if collision_manager:

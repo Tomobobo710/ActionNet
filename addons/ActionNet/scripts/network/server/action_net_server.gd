@@ -53,7 +53,8 @@ func create(port: int, max_clients: int) -> Error:
 			# Initialize world management
 			collision_manager = CollisionManager.new()
 			world_manager = WorldManager.new()
-			world_manager.initialize(server_world, collision_manager)
+			world_manager.initialize(server_world, collision_manager, manager)
+			world_manager.object_spawned.connect(_on_object_spawned)
 			add_child(world_manager)
 			
 			# Initialize clock
@@ -70,7 +71,7 @@ func create(port: int, max_clients: int) -> Error:
 			
 			# Register world objects and auto-spawn
 			world_manager.register_existing_physics_objects()
-			auto_spawn_physics_objects()
+			world_manager.auto_spawn_physics_objects()
 			
 			return OK
 			
@@ -89,6 +90,12 @@ func create(port: int, max_clients: int) -> Error:
 		_:
 			print("[ActionNetServer] Failed to create server. Error code: ", error)
 			return error
+
+func _on_object_spawned(object: Node, type: String) -> void:
+	if type == "client":
+		print("[ActionNetServer] Spawned client object for client id: ", object.name)
+	else:
+		print("[ActionNetServer] Spawned physics object: ", type)
 
 func _on_peer_connected(peer_id: int) -> void:
 	print("[ActionNetServer] Client connected to server: ", peer_id)
@@ -131,36 +138,12 @@ func _on_tick(clock_sequence: int) -> void:
 	if not clients.is_empty():
 		rpc("receive_world_state", world_manager.get_world_state())
 
-func auto_spawn_physics_objects() -> void:
-	for object_type in manager.registered_physics_objects.keys():
-		var scene = manager.get_physics_object_scene(object_type)
-		var temp_instance = scene.instantiate()
-		if temp_instance.auto_spawn:
-			world_manager.spawn_physics_object(object_type, scene)
-		temp_instance.queue_free()
-
-func spawn_client_object(id: int):
-	var client_object_scene = manager.get_client_object_scene()
-	if client_object_scene:
-		world_manager.spawn_client_object(id, client_object_scene)
-		print("[ActionNetServer] Spawned client object for client id: ", id)
-	else:
-		print("[ActionNetServer] Error: No client object registered")
-
-func spawn_physics_object(object_type: String):
-	var physics_object_scene = manager.get_physics_object_scene(object_type)
-	if physics_object_scene:
-		world_manager.spawn_physics_object(object_type, physics_object_scene)
-		print("[ActionNetServer] Spawned physics object: ", object_type)
-	else:
-		print("[ActionNetServer] Error: No physics object registered with type: ", object_type)
-
 # Server side RPCs
 @rpc("any_peer", "call_remote", "reliable")
 func request_spawn():
 	var id = server_multiplayer.get_remote_sender_id()
 	print("[ActionNetServer] Received spawn request from client: ", id)
-	spawn_client_object(id)
+	world_manager.spawn_client_object(id)
 
 @rpc("any_peer", "call_local", "unreliable")
 func receive_ping(client_id: int) -> void:
