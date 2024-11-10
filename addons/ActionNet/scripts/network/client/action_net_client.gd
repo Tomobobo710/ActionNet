@@ -13,6 +13,7 @@ signal sequence_adjusted(new_offset: int, reason: String)
 var manager: ActionNetManager
 var clock: ActionNetClock
 var connection_manager: ClientConnectionManager
+var received_state_manager: ReceivedStateManager
 var network: ENetMultiplayerPeer
 var client_multiplayer: MultiplayerAPI
 var client_world: Node
@@ -38,17 +39,10 @@ func connect_to_server(ip: String, port: int) -> Error:
 		return error
 
 func setup_client_world() -> void:
-	client_world = manager.get_world_scene().instantiate()
-	client_world.name = "ClientWorld"
-	add_child(client_world)
-	
-	client_objects = Node2D.new()
-	client_objects.name = "Client Objects"
-	client_world.add_child(client_objects)
-
-	physics_objects = Node2D.new()
-	physics_objects.name = "2D Physics Objects"
-	client_world.add_child(physics_objects)
+	# Create the received state manager
+	received_state_manager = ReceivedStateManager.new(self)
+	add_child(received_state_manager)
+	received_state_manager.setup()
 
 func setup_multiplayer() -> void:
 	client_multiplayer = MultiplayerAPI.create_default_interface()
@@ -88,81 +82,9 @@ func receive_pong(server_time: int) -> void:
 
 @rpc("authority", "call_remote", "unreliable")
 func receive_world_state(state: Dictionary) -> void:
-	var sequence = state["sequence"]
-	
-	# Skip if we've already processed this state
-	if sequence <= last_processed_sequence:
-		return
-	
-	last_processed_sequence = sequence
-	connection_manager.update_server_sequence(sequence)
-	
-	# Check for client object during handshake
-	if connection_manager.handshake_in_progress:
-		var our_id = str(multiplayer.get_unique_id())
-		if our_id in state["client_objects"]:
-			connection_manager.confirm_client_object()
-	
-	update_client_objects(state["client_objects"])
-	update_physics_objects(state["physics_objects"])
+	# Forward to the received state manager
+	received_state_manager.process_world_state(state)
 
-
-func update_client_objects(state_objects: Dictionary) -> void:
-	var updated_objects = []
-	
-	for client_id in state_objects:
-		var object_state = state_objects[client_id]
-		updated_objects.append(str(client_id))
-		
-		if not client_objects.has_node(str(client_id)):
-			var client_object_scene = manager.get_client_object_scene()
-			if client_object_scene:
-				var client_object = client_object_scene.instantiate()
-				client_object.name = str(client_id)
-				client_objects.add_child(client_object)
-		
-		if client_objects.has_node(str(client_id)):
-			var client_object = client_objects.get_node(str(client_id))
-			client_object.set_state(object_state)
-	
-	# Remove disconnected objects
-	for client_object in client_objects.get_children():
-		if not client_object.name in updated_objects:
-			client_object.queue_free()
-
-func update_physics_objects(state_objects: Dictionary) -> void:
-	var updated_objects = []
-	
-	for object_name in state_objects:
-		var object_state = state_objects[object_name]
-		var safe_name = object_name.replace("@", "_")
-		updated_objects.append(safe_name)
-		
-		var physics_object = physics_objects.get_node_or_null(safe_name)
-		
-		if not physics_object:
-			physics_object = client_world.find_child(safe_name, true, false)
-			if physics_object and physics_object.get_parent() != physics_objects:
-				physics_object.get_parent().remove_child(physics_object)
-				physics_objects.add_child(physics_object)
-		
-		if not physics_object:
-			var object_type = object_state["type"]
-			var physics_object_scene = manager.get_physics_object_scene(object_type)
-			if physics_object_scene:
-				physics_object = physics_object_scene.instantiate()
-				physics_object.name = safe_name
-				physics_objects.add_child(physics_object)
-			else:
-				print("[ActionNetClient] Error: No physics object registered with type: ", object_type)
-				continue
-		
-		physics_object.set_state(object_state)
-	
-	# Remove objects no longer in state
-	for physics_object in physics_objects.get_children():
-		if not physics_object.name in updated_objects:
-			physics_object.queue_free()
 
 func _on_connected_to_server() -> void:
 	print("[ActionNetClient] Connected to server, beginning handshake...")
@@ -228,6 +150,11 @@ func cleanup() -> void:
 	if clock:
 		clock.queue_free()
 		clock = null
+	
+	if received_state_manager:
+		received_state_manager.cleanup()
+		received_state_manager.queue_free()
+		received_state_manager = null
 	
 	if client_world:
 		client_world.queue_free()
