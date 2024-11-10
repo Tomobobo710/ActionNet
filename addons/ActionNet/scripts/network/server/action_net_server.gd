@@ -50,7 +50,7 @@ func create(port: int, max_clients: int) -> Error:
 			server_multiplayer.server_relay = true
 			manager.server_multiplayer_api = server_multiplayer
 			
-			# Initialize managers
+			# Initialize world management
 			collision_manager = CollisionManager.new()
 			world_manager = WorldManager.new()
 			world_manager.initialize(server_world, collision_manager)
@@ -172,7 +172,7 @@ func receive_input(input: Dictionary):
 	var client_id = server_multiplayer.get_remote_sender_id()
 	input_registry.store_input(client_id, input)
 
-# Client side RPC must be declared locally 
+# Remote method declarations
 @rpc("authority", "call_remote", "unreliable")
 func receive_world_state(_state: Dictionary) -> void:
 	pass

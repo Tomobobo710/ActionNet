@@ -14,6 +14,9 @@ var manager: ActionNetManager
 var clock: ActionNetClock
 var connection_manager: ClientConnectionManager
 var received_state_manager: ReceivedStateManager
+var input_registry: InputRegistry
+var world_manager: WorldManager
+var collision_manager: CollisionManager
 var network: ENetMultiplayerPeer
 var client_multiplayer: MultiplayerAPI
 var client_world: Node
@@ -27,8 +30,8 @@ func connect_to_server(ip: String, port: int) -> Error:
 	print("[ActionNetClient] Attempting to connect to server at ", ip, ":", port)
 	var error = network.create_client(ip, port)
 	if error == OK:
-		setup_client_world()
 		setup_multiplayer()
+		setup_client_world()
 		setup_clock()
 		setup_connection_manager()
 		setup_polling()
@@ -39,10 +42,48 @@ func connect_to_server(ip: String, port: int) -> Error:
 		return error
 
 func setup_client_world() -> void:
+	# Create client predicted world
+	client_world = manager.get_world_scene().instantiate()
+	client_world.name = "ClientWorld"
+	add_child(client_world)
+	
+	# Initialize input registry
+	input_registry = InputRegistry.new()
+	add_child(input_registry)
+	
+	# Initialize managers for prediction
+	collision_manager = CollisionManager.new()
+	world_manager = WorldManager.new()
+	world_manager.initialize(client_world, collision_manager)
+	add_child(world_manager)
+	
+	# Register world objects and auto-spawn
+	world_manager.register_existing_physics_objects()
+	auto_spawn_physics_objects()
+	
+	# Spawn client-side client object
+	spawn_client_object(client_multiplayer.get_unique_id())
+	
 	# Create the received state manager
 	received_state_manager = ReceivedStateManager.new(self)
 	add_child(received_state_manager)
 	received_state_manager.setup()
+
+func spawn_client_object(id: int):
+	var client_object_scene = manager.get_client_object_scene()
+	if client_object_scene:
+		world_manager.spawn_client_object(id, client_object_scene)
+		print("[ActionNetClient] Spawned client-side client object for client id: ", id)
+	else:
+		print("[ActionNetClient] Error: No client object registered")
+
+func auto_spawn_physics_objects() -> void:
+	for object_type in manager.registered_physics_objects.keys():
+		var scene = manager.get_physics_object_scene(object_type)
+		var temp_instance = scene.instantiate()
+		if temp_instance.auto_spawn:
+			world_manager.spawn_physics_object(object_type, scene)
+		temp_instance.queue_free()
 
 func setup_multiplayer() -> void:
 	client_multiplayer = MultiplayerAPI.create_default_interface()
@@ -76,16 +117,6 @@ func setup_polling() -> void:
 	add_child(poll_timer)
 	poll_timer.start()
 
-@rpc("any_peer", "call_remote", "unreliable")
-func receive_pong(server_time: int) -> void:
-	connection_manager.handle_pong(server_time)
-
-@rpc("authority", "call_remote", "unreliable")
-func receive_world_state(state: Dictionary) -> void:
-	# Forward to the received state manager
-	received_state_manager.process_world_state(state)
-
-
 func _on_connected_to_server() -> void:
 	print("[ActionNetClient] Connected to server, beginning handshake...")
 	connection_manager.start_handshake()
@@ -111,6 +142,27 @@ func _on_tick(clock_sequence: int) -> void:
 func handle_input() -> void:
 	if is_sending_inputs:
 		connection_manager.check_sequence_adjustment()
+		
+		# Get and store current input before sending
+		var current_input = {}
+		for action_name in manager.input_definitions:
+			var input_def = manager.input_definitions[action_name]
+			current_input[action_name] = input_def.get_input_value()
+		
+		current_input["sequence"] = connection_manager.get_client_sequence()
+		input_registry.store_input(client_multiplayer.get_unique_id(), current_input)
+		
+		# Apply input to client object and update world
+		var client_objects = world_manager.client_objects
+		for client_object in client_objects.get_children():
+			var client_id = int(str(client_object.name))
+			var input = input_registry.get_input_for_sequence(client_id, world_manager.sequence)
+			client_object.apply_input(input, clock.tick_rate)
+		
+		# Update predicted world state
+		world_manager.update(clock.tick_rate)
+		
+		# Send input to server (existing functionality)
 		send_input()
 
 func _on_poll_timer_timeout() -> void:
@@ -163,7 +215,29 @@ func cleanup() -> void:
 	if connection_manager:
 		connection_manager.handshake_in_progress = false
 	
+	if world_manager:
+		world_manager.queue_free()
+		world_manager = null
+	
+	if collision_manager:
+		collision_manager.queue_free()
+		collision_manager = null
+	
+	if input_registry:
+		input_registry.queue_free()
+		input_registry = null
+	
 	is_sending_inputs = false
+
+# Local RPC methods
+@rpc("any_peer", "call_remote", "unreliable")
+func receive_pong(server_time: int) -> void:
+	connection_manager.handle_pong(server_time)
+
+@rpc("authority", "call_remote", "unreliable")
+func receive_world_state(state: Dictionary) -> void:
+	# Forward to the received state manager
+	received_state_manager.process_world_state(state)
 
 # Remote method declarations
 @rpc("any_peer", "call_remote", "reliable")

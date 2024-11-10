@@ -42,8 +42,6 @@ func register_objects():
 		var scene = create_physics_object_scene(physics_objects[object_name])
 		ActionNetManager.register_physics_object(object_name, scene)
 
-
-
 func create_custom_world_scene():
 	# Create the root node for our world
 	var world_root = Node2D.new()
