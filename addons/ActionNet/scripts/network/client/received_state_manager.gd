@@ -1,3 +1,4 @@
+# res://addons/ActionNet/scripts/network/client/received_state_manager.gd
 extends Node
 class_name ReceivedStateManager
 

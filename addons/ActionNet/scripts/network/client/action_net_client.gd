@@ -83,12 +83,6 @@ func setup_client_world() -> void:
 	add_child(received_state_manager)
 	received_state_manager.setup()
 
-func _on_object_spawned(object: Node, type: String) -> void:
-	if type == "client":
-		print("[ActionNetClient] Spawned client-side client object for client id: ", object.name)
-	else:
-		print("[ActionNetClient] Spawned object of type: ", type)
-
 func setup_clock() -> void:
 	clock = ActionNetClock.new()
 	clock.connect("tick", Callable(self, "_on_tick"))
@@ -122,6 +116,12 @@ func _on_handshake_failed(reason: String) -> void:
 	is_sending_inputs = false
 	network.close()
 	emit_signal("handshake_failed", reason)
+
+func _on_object_spawned(object: Node, type: String) -> void:
+	if type == "client":
+		print("[ActionNetClient] Spawned client-side client object for client id: ", object.name)
+	else:
+		print("[ActionNetClient] Spawned object of type: ", type)
 
 func _on_sequence_adjusted(new_offset: int, reason: String) -> void:
 	emit_signal("sequence_adjusted", new_offset, reason)

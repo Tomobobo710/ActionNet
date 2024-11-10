@@ -130,5 +130,3 @@ func _on_client_connection_failed() -> void:
 func _on_client_connection_timed_out() -> void:
 	show_error_popup("Connection to server timed out.")
 	emit_signal("connection_failed")
-
-

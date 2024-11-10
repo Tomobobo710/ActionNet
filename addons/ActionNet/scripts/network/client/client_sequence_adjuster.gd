@@ -8,7 +8,7 @@ signal sequence_adjusted(new_offset: int, reason: String)
 var rtt_threshold_ms: int = 16  # RTT change threshold to trigger adjustment
 var adjustment_cooldown: float = 1.0  # Minimum time between adjustments
 var last_adjustment_time: float = 0.0
-var min_frames_ahead: int = 10
+var min_frames_ahead: int = 5
 var max_frames_ahead: int = 60
 var sequence_adjustment_enabled: bool = true
 
