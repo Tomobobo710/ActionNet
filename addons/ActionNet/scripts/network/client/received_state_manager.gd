@@ -109,14 +109,6 @@ func update_received_physics_objects(state_objects: Dictionary) -> void:
 		if not physics_object.name in updated_objects:
 			physics_object.queue_free()
 
-func get_last_received_state() -> Dictionary:
-	# This will be useful for reconciliation later
-	var state = {}
-	state["client_objects"] = get_client_objects_state()
-	state["physics_objects"] = get_physics_objects_state()
-	state["sequence"] = last_processed_sequence
-	return state
-
 func get_client_objects_state() -> Dictionary:
 	var state = {}
 	for object in received_client_objects.get_children():

@@ -89,8 +89,6 @@ func check_prediction(server_state: Dictionary) -> void:
 	if not compare_states(server_state, client_state):
 		print("[WorldManager] Prediction missed! For sequence ", server_sequence)
 		emit_signal("prediction_missed", server_sequence, server_state, client_state)
-	else:
-		print("[WorldManager] Prediction correct!")
 
 func auto_spawn_physics_objects() -> void:
 	if not manager:
@@ -189,13 +187,13 @@ func update(delta: float) -> void:
 	var current_state = get_world_state()
 	
 	# Store the state
-	print("[WorldManager] Adding state with sequence: ", current_state.get("sequence"))
+	#print("[WorldManager] Adding state with sequence: ", current_state.get("sequence"))
 	world_registry.add_state(current_state)
 	
 	# Emit the updated state
 	emit_signal("state_updated", current_state)
 
-func apply_state(state: Dictionary) -> void:
+func set_world_state(state: Dictionary) -> void:
 	sequence = state["sequence"]
 	
 	# Track which objects we've updated

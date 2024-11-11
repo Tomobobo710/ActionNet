@@ -8,8 +8,14 @@ const MAX_STATES = 120
 var world_states: Array[Dictionary] = []
 
 func add_state(state: Dictionary) -> void:
-	print("[WorldStateRegistry] Adding state with sequence: ", state.get("sequence")) #debug
-	# Add the new state
+	# First check if a state with this sequence already exists
+	for i in range(world_states.size()):
+		if world_states[i]["sequence"] == state.get("sequence"):
+			# If found, overwrite the existing state
+			world_states[i] = state.duplicate(true)
+			return
+	
+	# If we didn't find a matching sequence, append the new state
 	world_states.append(state.duplicate(true))
 	
 	# Remove oldest state if we're over the limit
