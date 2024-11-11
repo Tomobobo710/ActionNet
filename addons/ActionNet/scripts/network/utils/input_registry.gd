@@ -35,7 +35,7 @@ func store_input(client_id: int, input: Dictionary) -> void:
 func get_input_for_sequence(client_id: int, sequence: int) -> Dictionary:
 	# Case 1: No inputs exist for this client
 	if not stored_inputs.has(client_id) or stored_inputs[client_id].is_empty():
-		print("No inputs found for client ", client_id)
+		print("[InputRegistry] No inputs found for client ", client_id)
 		return {}
 	
 	var most_recent_before = null
@@ -50,11 +50,11 @@ func get_input_for_sequence(client_id: int, sequence: int) -> Dictionary:
 	
 	# Case 3: We found an input before the sequence
 	if most_recent_before != null:
-		print("Using most recent input before sequence ", sequence, " (found: ", most_recent_before.sequence, ")")
+		print("[InputRegistry] Using most recent input before sequence ", sequence, " (found: ", most_recent_before.sequence, ")")
 		return most_recent_before.input
 		
 	# Case 4: No earlier inputs found
-	print("No inputs found before sequence ", sequence)
+	print("[InputRegistry] No inputs found before sequence ", sequence)
 	return {}
 
 # Get the most recent input for a client

@@ -38,8 +38,8 @@ func _process(delta: float) -> void:
 	if handshake_in_progress:
 		process_handshake(delta)
 
-func _on_sequence_adjusted(new_offset: int, reason: String) -> void:
-	emit_signal("sequence_adjusted", new_offset, reason)
+func _on_sequence_adjusted(new_sequence: int, reason: String) -> void:
+	emit_signal("sequence_adjusted", new_sequence, reason)
 
 func initialize(new_client):
 	client = new_client

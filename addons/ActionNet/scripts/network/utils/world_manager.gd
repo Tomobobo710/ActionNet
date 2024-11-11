@@ -4,6 +4,7 @@ class_name WorldManager
 
 signal state_updated(state: Dictionary)
 signal object_spawned(object: Node, type: String)
+signal prediction_missed(client_sequence: int, server_state: Dictionary, client_state: Dictionary)
 
 var sequence: int = 0
 var world: Node
@@ -34,6 +35,62 @@ func initialize(world_node: Node, collision_mgr: CollisionManager = null, net_ma
 		physics_objects = Node2D.new()
 		physics_objects.name = "2D Physics Objects"
 		world.add_child(physics_objects)
+
+func compare_states(state1: Dictionary, state2: Dictionary) -> bool:
+	# First check if either state has an error
+	if state1.has("error") or state2.has("error"):
+		return false
+	
+	# Compare client objects
+	var client_objects1 = state1.get("client_objects", {})
+	var client_objects2 = state2.get("client_objects", {})
+	
+	if not _compare_object_states(client_objects1, client_objects2):
+		return false
+	
+	# Compare physics objects
+	var physics_objects1 = state1.get("physics_objects", {})
+	var physics_objects2 = state2.get("physics_objects", {})
+	
+	if not _compare_object_states(physics_objects1, physics_objects2):
+		return false
+	
+	return true
+
+func _compare_object_states(objects1: Dictionary, objects2: Dictionary) -> bool:
+	# Check if they have the same objects
+	if objects1.keys() != objects2.keys():
+		return false
+	
+	# Compare each object's state
+	for object_id in objects1.keys():
+		var state1 = objects1[object_id]
+		var state2 = objects2[object_id]
+		
+		# Direct integer comparisons
+		if state1.x != state2.x or \
+		   state1.y != state2.y or \
+		   state1.vx != state2.vx or \
+		   state1.vy != state2.vy or \
+		   state1.rotation != state2.rotation or \
+		   state1.angular_velocity != state2.angular_velocity:
+			return false
+	
+	return true
+
+func check_prediction(server_state: Dictionary) -> void:
+	var server_sequence = server_state.get("sequence", -1)
+	var client_state = world_registry.get_state_for_sequence(server_sequence)
+	
+	if client_state.has("error"):
+		print("[WorldManager] State error: ", client_state["error"])
+		return
+	
+	if not compare_states(server_state, client_state):
+		print("[WorldManager] Prediction missed! For sequence ", server_sequence)
+		emit_signal("prediction_missed", server_sequence, server_state, client_state)
+	else:
+		print("[WorldManager] Prediction correct!")
 
 func auto_spawn_physics_objects() -> void:
 	if not manager:
@@ -67,6 +124,11 @@ func spawn_physics_object(object_type: String) -> void:
 	var object_scene = manager.get_physics_object_scene(object_type)
 	if object_scene:
 		var physics_object = object_scene.instantiate()
+		# Find existing objects with the same type and get the next number
+		var count = 1
+		while physics_objects.has_node(object_type + str(count)):
+			count += 1
+		physics_object.name = object_type + str(count)
 		physics_object.set_meta("type", object_type)
 		physics_objects.add_child(physics_object)
 		if collision_manager:
@@ -127,6 +189,7 @@ func update(delta: float) -> void:
 	var current_state = get_world_state()
 	
 	# Store the state
+	print("[WorldManager] Adding state with sequence: ", current_state.get("sequence"))
 	world_registry.add_state(current_state)
 	
 	# Emit the updated state

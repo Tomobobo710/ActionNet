@@ -8,6 +8,7 @@ const MAX_STATES = 120
 var world_states: Array[Dictionary] = []
 
 func add_state(state: Dictionary) -> void:
+	print("[WorldStateRegistry] Adding state with sequence: ", state.get("sequence")) #debug
 	# Add the new state
 	world_states.append(state.duplicate(true))
 	

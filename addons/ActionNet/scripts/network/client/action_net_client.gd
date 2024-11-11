@@ -9,6 +9,7 @@ signal server_disconnected
 signal handshake_failed(reason: String)
 signal handshake_completed
 signal sequence_adjusted(new_offset: int, reason: String)
+signal prediction_missed(sequence: int, server_state: Dictionary, client_state: Dictionary)
 
 var manager: ActionNetManager
 var clock: ActionNetClock
@@ -67,8 +68,9 @@ func setup_client_world() -> void:
 	collision_manager = CollisionManager.new()
 	world_manager = WorldManager.new()
 	world_manager.initialize(client_world, collision_manager, manager)
-	# Connect to debug signals if needed
+	# Connect to signals
 	world_manager.object_spawned.connect(_on_object_spawned)
+	world_manager.prediction_missed.connect(_on_prediction_missed)
 	add_child(world_manager)
 	
 	# Register world objects and auto-spawn
@@ -123,8 +125,9 @@ func _on_object_spawned(object: Node, type: String) -> void:
 	else:
 		print("[ActionNetClient] Spawned object of type: ", type)
 
-func _on_sequence_adjusted(new_offset: int, reason: String) -> void:
-	emit_signal("sequence_adjusted", new_offset, reason)
+func _on_sequence_adjusted(new_sequence: int, reason: String) -> void:
+	world_manager.sequence = new_sequence
+	emit_signal("sequence_adjusted", new_sequence, reason)
 
 func _on_tick(clock_sequence: int) -> void:
 	connection_manager.update()
@@ -134,7 +137,6 @@ func _on_tick(clock_sequence: int) -> void:
 func handle_input() -> void:
 	if is_sending_inputs:
 		connection_manager.check_sequence_adjustment()
-		
 		# Get and store current input before sending
 		var current_input = {}
 		for action_name in manager.input_definitions:
@@ -172,6 +174,12 @@ func _on_server_disconnected() -> void:
 
 func request_spawn_from_server() -> void:
 	rpc("request_spawn")
+
+func _on_prediction_missed(sequence: int, server_state: Dictionary, client_state: Dictionary) -> void:
+	print("[ActionNetClient] Prediction missed for sequence ", sequence)
+	print("Server state: ", server_state)
+	print("Client state: ", client_state)
+	emit_signal("prediction_missed", sequence, server_state, client_state)
 
 func send_input() -> void:
 	var current_input = {}
@@ -228,6 +236,11 @@ func receive_pong(server_time: int) -> void:
 
 @rpc("authority", "call_remote", "unreliable")
 func receive_world_state(state: Dictionary) -> void:
+	# Check prediction before processing the new state
+	if world_manager:
+		world_manager.check_prediction(state)
+		
+	
 	# Forward to the received state manager
 	received_state_manager.process_world_state(state)
 

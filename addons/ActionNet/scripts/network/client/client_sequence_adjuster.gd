@@ -103,4 +103,4 @@ func adjust_sequence(new_sequence: int, reason: String) -> void:
 	print("[ClientSequenceAdjuster] Frames ahead: ", old_frames_ahead, " -> ", frames_ahead)
 	print("[ClientSequenceAdjuster] Reason: ", reason)
 	
-	emit_signal("sequence_adjusted", frames_ahead, reason)
+	emit_signal("sequence_adjusted", client_sequence, reason)
