@@ -94,8 +94,12 @@ func create(port: int, max_clients: int) -> Error:
 func _on_object_spawned(object: Node, type: String) -> void:
 	if type == "client":
 		print("[ActionNetServer] Spawned client object for client id: ", object.name)
+		object.set_color(Color.WHITE)
+		object.set_z_index(-1)
 	else:
 		print("[ActionNetServer] Spawned physics object: ", type)
+		object.set_color(Color.WHITE)
+		object.set_z_index(-1)
 
 func _on_peer_connected(peer_id: int) -> void:
 	print("[ActionNetServer] Client connected to server: ", peer_id)
@@ -129,14 +133,22 @@ func _on_tick(clock_sequence: int) -> void:
 	for client_object in client_objects.get_children():
 		var client_id = int(str(client_object.name))
 		var input = input_registry.get_input_for_sequence(client_id, world_manager.sequence)
+		print("[ActionNetServer] Got input for client ", client_id, " for the sequence to process: ", world_manager.sequence)
 		client_object.apply_input(input, clock.tick_rate)
 	
 	# Update world state
 	world_manager.update(clock.tick_rate)
+	print("[ActionNetServer] Server world manager sequence updated, is now: ", world_manager.sequence)
+	
+	var processed_state = world_manager.get_world_state()
 	
 	# Send world state to all clients
 	if not clients.is_empty():
-		rpc("receive_world_state", world_manager.get_world_state())
+		rpc("receive_world_state", processed_state)
+		print("[ActionNetServer] Server sending world state with sequence: ", world_manager.sequence)
+	
+	# Increment the world manager's sequence manually...
+	world_manager.sequence += 1
 
 # Server side RPCs
 @rpc("any_peer", "call_remote", "reliable")

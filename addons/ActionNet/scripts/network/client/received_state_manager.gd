@@ -5,6 +5,7 @@ class_name ReceivedStateManager
 signal state_received(sequence: int)
 
 var client: ActionNetClient
+var world_registry: WorldStateRegistry
 var last_processed_sequence: int = -1
 
 # References to nodes that will contain the received state
@@ -14,6 +15,9 @@ var received_physics_objects: Node
 
 func _init(client_ref: ActionNetClient) -> void:
 	client = client_ref
+	# Initialize world registry
+	world_registry = WorldStateRegistry.new()
+	add_child(world_registry)
 
 func setup() -> void:
 	# Create a separate scene tree for received state
@@ -29,9 +33,13 @@ func setup() -> void:
 	received_physics_objects.name = "Received Physics Objects"
 	received_world.add_child(received_physics_objects)
 
+
 func process_world_state(state: Dictionary) -> void:
-	var sequence = state["sequence"]
+	# Add this state to the server-authoritative world state registry
+	world_registry.add_state(state)
 	
+	var sequence = state["sequence"]
+	print("[ReceivedStateManager] Recieved state with sequence: ", sequence)
 	# Skip if we've already processed this state
 	if sequence <= last_processed_sequence:
 		return
@@ -47,6 +55,7 @@ func process_world_state(state: Dictionary) -> void:
 		if our_id in state["client_objects"]:
 			client.connection_manager.confirm_client_object()
 	
+	# Update the server side representation of objects from this state (ghost objects)
 	update_received_client_objects(state["client_objects"])
 	update_received_physics_objects(state["physics_objects"])
 	

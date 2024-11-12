@@ -8,6 +8,12 @@ signal input_removed(client_id: int, sequence: int)
 # Storage structure: Dictionary[client_id: int] -> Array[Dictionary]
 var stored_inputs: Dictionary = {}
 var max_stored_inputs: int = 300  # Default: 5 seconds at 60Hz
+var is_server_owned: bool = true
+
+func _get_debug_prefix() -> String:
+	if is_server_owned:
+		return "[ServerInputRegistry]"
+	return "[ClientInputRegistry]"
 
 func _init(max_inputs: int = 300):
 	max_stored_inputs = max_inputs
@@ -35,7 +41,7 @@ func store_input(client_id: int, input: Dictionary) -> void:
 func get_input_for_sequence(client_id: int, sequence: int) -> Dictionary:
 	# Case 1: No inputs exist for this client
 	if not stored_inputs.has(client_id) or stored_inputs[client_id].is_empty():
-		print("[InputRegistry] No inputs found for client ", client_id)
+		print(_get_debug_prefix(), " No inputs found for client ", client_id)
 		return {}
 	
 	var most_recent_before = null
@@ -43,18 +49,18 @@ func get_input_for_sequence(client_id: int, sequence: int) -> Dictionary:
 	# Look for exact match and track most recent before
 	for input_data in stored_inputs[client_id]:
 		if input_data.sequence == sequence:
-			#print("Found exact sequence match: ", sequence)
+			#print(_get_debug_prefix(), " Found exact sequence match: ", sequence)
 			return input_data.input
 		elif input_data.sequence < sequence:
 			most_recent_before = input_data
 	
 	# Case 3: We found an input before the sequence
 	if most_recent_before != null:
-		print("[InputRegistry] Using most recent input before sequence ", sequence, " (found: ", most_recent_before.sequence, ")")
+		print(_get_debug_prefix(), " Using most recent input before sequence ", sequence, " (found: ", most_recent_before.sequence, ")")
 		return most_recent_before.input
 		
 	# Case 4: No earlier inputs found
-	print("[InputRegistry] No inputs found before sequence ", sequence)
+	print(_get_debug_prefix(), " No inputs found before sequence ", sequence)
 	return {}
 
 # Get the most recent input for a client

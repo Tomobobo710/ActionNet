@@ -36,49 +36,50 @@ func initialize(world_node: Node, collision_mgr: CollisionManager = null, net_ma
 		physics_objects.name = "2D Physics Objects"
 		world.add_child(physics_objects)
 
-func compare_states(state1: Dictionary, state2: Dictionary) -> bool:
+func compare_states(state1: Dictionary, state2: Dictionary, client_id: String) -> bool:
 	# First check if either state has an error
 	if state1.has("error") or state2.has("error"):
 		return false
 	
-	# Compare client objects
+	# Compare specific client object
 	var client_objects1 = state1.get("client_objects", {})
 	var client_objects2 = state2.get("client_objects", {})
 	
-	if not _compare_object_states(client_objects1, client_objects2):
+	# Only compare our specific client
+	if not _compare_object_state(client_objects1.get(client_id, {}), client_objects2.get(client_id, {})):
 		return false
 	
 	# Compare physics objects
-	var physics_objects1 = state1.get("physics_objects", {})
-	var physics_objects2 = state2.get("physics_objects", {})
-	
-	if not _compare_object_states(physics_objects1, physics_objects2):
+	if not _compare_object_states(state1.get("physics_objects", {}), state2.get("physics_objects", {})):
 		return false
 	
+	return true
+
+func _compare_object_state(state1: Dictionary, state2: Dictionary) -> bool:
+	# Direct integer comparisons
+	if state1.get("x", 0) != state2.get("x", 0) or \
+	   state1.get("y", 0) != state2.get("y", 0) or \
+	   state1.get("vx", 0) != state2.get("vx", 0) or \
+	   state1.get("vy", 0) != state2.get("vy", 0) or \
+	   state1.get("rotation", 0) != state2.get("rotation", 0) or \
+	   state1.get("angular_velocity", 0) != state2.get("angular_velocity", 0):
+		return false
+
 	return true
 
 func _compare_object_states(objects1: Dictionary, objects2: Dictionary) -> bool:
 	# Check if they have the same objects
 	if objects1.keys() != objects2.keys():
 		return false
-	
+
 	# Compare each object's state
 	for object_id in objects1.keys():
-		var state1 = objects1[object_id]
-		var state2 = objects2[object_id]
-		
-		# Direct integer comparisons
-		if state1.x != state2.x or \
-		   state1.y != state2.y or \
-		   state1.vx != state2.vx or \
-		   state1.vy != state2.vy or \
-		   state1.rotation != state2.rotation or \
-		   state1.angular_velocity != state2.angular_velocity:
+		if not _compare_object_state(objects1[object_id], objects2[object_id]):
 			return false
-	
+
 	return true
 
-func check_prediction(server_state: Dictionary) -> void:
+func check_prediction(server_state: Dictionary, client_id: int) -> void:
 	var server_sequence = server_state.get("sequence", -1)
 	var client_state = world_registry.get_state_for_sequence(server_sequence)
 	
@@ -86,9 +87,100 @@ func check_prediction(server_state: Dictionary) -> void:
 		print("[WorldManager] State error: ", client_state["error"])
 		return
 	
-	if not compare_states(server_state, client_state):
+	# Pass the client_id as string since that's how we store it in the state
+	if not compare_states(server_state, client_state, str(client_id)):
 		print("[WorldManager] Prediction missed! For sequence ", server_sequence)
 		emit_signal("prediction_missed", server_sequence, server_state, client_state)
+		perform_reprediction(server_state, client_id)
+	#else:
+		#print("[WorldManager] Prediction correct!")
+
+func perform_reprediction(server_state: Dictionary, client_id: int) -> void:
+	var start_time = Time.get_ticks_msec()
+	
+	var server_sequence = server_state.get("sequence", -1)
+	var current_sequence = sequence
+	
+	print("[WorldManager] Starting reprediction from sequence ", server_sequence, " up to ", current_sequence - 1)
+	
+	# Store our current sequence as we'll need to restore it
+	var target_sequence = current_sequence - 1
+	
+	# Track timing for state application
+	var state_update_start = Time.get_ticks_msec()
+	
+	# 1. Update our world registry with the authoritative state
+	world_registry.add_state(server_state)
+	
+	# 2. Set our world to match the authoritative state
+	set_world_state(server_state)
+	
+	# 3. Set our sequence to match the server's sequence
+	#sequence = server_sequence
+	
+	var state_update_time = Time.get_ticks_msec() - state_update_start
+	print("[WorldManager] State update took ", state_update_time, "ms")
+	
+	# 4. Calculate how many frames we need to repredict
+	var frames_to_repredict = target_sequence - server_sequence
+	
+	if frames_to_repredict <= 0:
+		print("[WorldManager] No frames to repredict")
+		var total_time = Time.get_ticks_msec() - start_time
+		print("[WorldManager] Total process took ", total_time, "ms")
+		return
+		
+	print("[WorldManager] Repredicting ", frames_to_repredict, " frames")
+	
+	# Track timing for reprediction loop
+	var reprediction_start = Time.get_ticks_msec()
+	
+	# 5. Repredict each frame
+	for i in range(frames_to_repredict):
+		var frame_start = Time.get_ticks_msec()
+		var repredicted_sequence = server_sequence + i + 1
+		
+		# Apply inputs for this sequence to our client object
+		for client_object in client_objects.get_children():
+			#var client_id = int(str(client_object.name))
+			if client_object.name.to_int() == client_id:
+				var input = manager.client.input_registry.get_input_for_sequence(client_id, repredicted_sequence)
+			
+				if input.is_empty():
+					print("[WorldManager] Warning: No input found for sequence ", repredicted_sequence, " client ", client_id)
+					continue
+				print("[WorldManager] Repredicting input for client id: ", client_id)
+				client_object.apply_input(input, manager.client.clock.tick_rate) # Using standard tick rate for reprediction
+		
+		# Update physics objects and resolve collisions
+		for physics_object in physics_objects.get_children():
+			physics_object.update(manager.client.clock.tick_rate)
+			
+		# Handle collisions
+		if collision_manager:
+			collision_manager.check_and_resolve_collisions()
+			
+		# Increment sequence
+		sequence += 1
+		
+		# Get and store the repredicted state
+		var repredicted_state = get_world_state()
+		world_registry.add_state(repredicted_state)
+		
+		var frame_time = Time.get_ticks_msec() - frame_start
+		print("[WorldManager] Repredicted sequence ", repredicted_sequence, " in ", frame_time, "ms")
+	
+	var reprediction_time = Time.get_ticks_msec() - reprediction_start
+	print("[WorldManager] Reprediction loop took ", reprediction_time, "ms")
+	
+	# Verify we're at the expected sequence
+	if sequence != target_sequence:
+		push_error("[WorldManager] Reprediction error: Expected to end at sequence ", 
+				  target_sequence, " but ended at ", sequence)
+	
+	var total_time = Time.get_ticks_msec() - start_time
+	sequence += 1 # one final one to put us where we want to be
+	print("[WorldManager] Reprediction complete. Total process took ", total_time, "ms. Current frame for world manager is: ", sequence)
 
 func auto_spawn_physics_objects() -> void:
 	if not manager:
@@ -109,6 +201,8 @@ func spawn_client_object(id: int) -> void:
 	if client_object_scene and not client_objects.has_node(str(id)):
 		var client_object = client_object_scene.instantiate()
 		client_object.name = str(id)
+		client_object.set_color(Color.GREEN)
+		client_object.set_z_index(1)
 		client_object.set_multiplayer_authority(id)
 		client_objects.add_child(client_object)
 		if collision_manager:
@@ -127,6 +221,8 @@ func spawn_physics_object(object_type: String) -> void:
 		while physics_objects.has_node(object_type + str(count)):
 			count += 1
 		physics_object.name = object_type + str(count)
+		physics_object.set_color(Color.GREEN)
+		physics_object.set_z_index(1)
 		physics_object.set_meta("type", object_type)
 		physics_objects.add_child(physics_object)
 		if collision_manager:
@@ -170,7 +266,7 @@ func _get_physics_objects_state() -> Dictionary:
 	return physics_states
 
 func update(delta: float) -> void:
-	sequence += 1
+	# Beware, this does not increment the sequence
 	
 	# Update all objects
 	for client_object in client_objects.get_children():

@@ -62,6 +62,7 @@ func setup_client_world() -> void:
 	
 	# Initialize input registry
 	input_registry = InputRegistry.new()
+	input_registry.is_server_owned = false
 	add_child(input_registry)
 	
 	# Initialize managers for prediction
@@ -135,6 +136,10 @@ func _on_tick(clock_sequence: int) -> void:
 	handle_input()
 
 func handle_input() -> void:
+	# Check prediction
+	if world_manager:
+		world_manager.check_prediction(received_state_manager.world_registry.get_newest_state(), client_multiplayer.get_unique_id())
+		print("[ActionNetClient] Prediction check done, world manager sequence is: ", world_manager.sequence, ". handling input...")
 	if is_sending_inputs:
 		connection_manager.check_sequence_adjustment()
 		# Get and store current input before sending
@@ -143,7 +148,8 @@ func handle_input() -> void:
 			var input_def = manager.input_definitions[action_name]
 			current_input[action_name] = input_def.get_input_value()
 		
-		current_input["sequence"] = connection_manager.get_client_sequence()
+		print("[ActionNetClient] Connection manager current sequence is: ", connection_manager.get_client_sequence())
+		current_input["sequence"] = world_manager.sequence
 		input_registry.store_input(client_multiplayer.get_unique_id(), current_input)
 		
 		# Apply input to client object and update world
@@ -156,8 +162,12 @@ func handle_input() -> void:
 		# Update predicted world state
 		world_manager.update(clock.tick_rate)
 		
+		# Increment the world manager's sequence manually...
+		world_manager.sequence += 1
+		
 		# Send input to server (existing functionality)
 		send_input()
+		print("[ActionNetClient] Input handling done. World manager sequence is now: ", world_manager.sequence)
 
 func _on_poll_timer_timeout() -> void:
 	if client_multiplayer and client_multiplayer.has_multiplayer_peer():
@@ -236,11 +246,6 @@ func receive_pong(server_time: int) -> void:
 
 @rpc("authority", "call_remote", "unreliable")
 func receive_world_state(state: Dictionary) -> void:
-	# Check prediction before processing the new state
-	if world_manager:
-		world_manager.check_prediction(state)
-		
-	
 	# Forward to the received state manager
 	received_state_manager.process_world_state(state)
 

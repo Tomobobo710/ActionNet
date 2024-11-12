@@ -1,4 +1,3 @@
-# res://addons/ActionNet/scripts/network/objects/action_net_phys_object_2D.gd
 extends Node2D
 
 class_name ActionNetPhysObject2D
@@ -14,6 +13,7 @@ var collision_mask: int = 1
 
 var sprite: Sprite2D
 var sprite_texture: Texture2D
+var tint_color: Color = Color.WHITE
 
 var BASE_SIZE: int = 512 * Physics.SCALE
 var MASS: int = 1000
@@ -35,9 +35,25 @@ func _ready():
 	if sprite_texture:
 		sprite = Sprite2D.new()
 		sprite.texture = sprite_texture
+		sprite.modulate = tint_color
 		add_child(sprite)
 		update_scale(Vector2(0.1, 0.1))
-	#update_visual()
+
+func set_color(color: Color) -> void:
+	tint_color = color
+	if sprite:
+		sprite.modulate = tint_color
+
+# New methods for controlling rendering order
+func set_z_index(z: int) -> void:
+	z_index = z
+	if sprite:
+		sprite.z_index = z
+
+func set_y_sort_enabled(enabled: bool) -> void:
+	y_sort_enabled = enabled
+	if sprite:
+		sprite.y_sort_enabled = enabled
 
 func update_scale(new_scale: Vector2):
 	scale = new_scale
