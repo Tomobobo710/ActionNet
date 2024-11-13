@@ -144,7 +144,7 @@ func handle_input() -> void:
 		#print("[ActionNetClient] Prediction check done, world manager sequence is: ", world_manager.sequence, ". handling input...")
 	if is_sending_inputs:
 		connection_manager.check_sequence_adjustment()
-		if world_manager.sequence != 0:
+		if world_manager.sequence != 0: # This check is a hack to make sure we don't send inputs too early
 			# Get and store current input before sending
 			var current_input = {}
 			for action_name in manager.input_definitions:
@@ -265,29 +265,31 @@ func receive_ping(client_id: int) -> void:
 func receive_input(input: Dictionary):
 	pass
 
-## Keeping these methods for reference on sending byte array messages
-#func send_ping_message() -> void:
-	#var ping_packet = PackedByteArray([0])  # 0 represents ping
-	#print("[ActionNetClient] Sending ping to server. Full packet content: ", bytes_to_string(ping_packet))
-	#client_multiplayer.send_bytes(ping_packet, 1, 2, 0)
-	#last_ping_time = Time.get_ticks_msec()
-	#print("[ActionNetClient] Sent ping to server. Packet Size: ", ping_packet.size())
-#
-#func _handle_packet(packet: PackedByteArray) -> void:
-	#if packet.size() < 1:
-		#print("[ActionNetClient] Received invalid packet from server")
-		#return
-	#print("[ActionNetClient] Received packet from server. Size: ", packet.size())
-	#var packet_type = packet[-1]
-	#
-	#match packet_type:
-		#1:  # Pong packet
-			#var current_time = Time.get_ticks_msec()
-			#var rtt = current_time - last_ping_time
-			#print("[ActionNetClient] Received pong from server. RTT: ", rtt, "ms")
-#
-#func bytes_to_string(bytes: PackedByteArray) -> String:
-	#var byte_strings = []
-	#for byte in bytes:
-		#byte_strings.append(str(byte))
-	#return " ".join(byte_strings)
+# Keeping these methods for reference on sending byte array messages
+var last_ping_time = -1
+
+func send_ping_message() -> void:
+	var ping_packet = PackedByteArray([0])  # 0 represents ping
+	print("[ActionNetClient] Sending ping to server. Full packet content: ", bytes_to_string(ping_packet))
+	client_multiplayer.send_bytes(ping_packet, 1, 2, 0)
+	last_ping_time = Time.get_ticks_msec()
+	print("[ActionNetClient] Sent ping to server. Packet Size: ", ping_packet.size())
+
+func _handle_packet(packet: PackedByteArray) -> void:
+	if packet.size() < 1:
+		print("[ActionNetClient] Received invalid packet from server")
+		return
+	print("[ActionNetClient] Received packet from server. Size: ", packet.size())
+	var packet_type = packet[-1]
+	
+	match packet_type:
+		1:  # Pong packet
+			var current_time = Time.get_ticks_msec()
+			var rtt = current_time - last_ping_time
+			print("[ActionNetClient] Received pong from server. RTT: ", rtt, "ms")
+
+func bytes_to_string(bytes: PackedByteArray) -> String:
+	var byte_strings = []
+	for byte in bytes:
+		byte_strings.append(str(byte))
+	return " ".join(byte_strings)

@@ -96,10 +96,12 @@ func _on_object_spawned(object: Node, type: String) -> void:
 		print("[ActionNetServer] Spawned client object for client id: ", object.name)
 		object.set_color(Color.WHITE)
 		object.set_z_index(-1)
+		object.hide()
 	else:
 		print("[ActionNetServer] Spawned physics object: ", type)
 		object.set_color(Color.WHITE)
 		object.set_z_index(-1)
+		object.hide()
 
 func _on_peer_connected(peer_id: int) -> void:
 	print("[ActionNetServer] Client connected to server: ", peer_id)
