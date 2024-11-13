@@ -3,6 +3,8 @@ extends CanvasLayer
 
 class_name ActionNetDebugUI
 
+signal visibility_changed_custom(is_visible: bool)
+
 const THEME_COLORS = {
 	"background": Color("1a1a1a50"),
 	"panel": Color("2a2a2a50"),
@@ -453,6 +455,7 @@ func _input(event):
 
 func toggle_visibility():
 	visible = !visible
+	emit_signal("visibility_changed_custom", visible)
 
 func set_server(new_server: ActionNetServer):
 	server = new_server

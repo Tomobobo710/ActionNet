@@ -39,12 +39,21 @@ func _ready():
 		add_child(sprite)
 		update_scale(Vector2(0.1, 0.1))
 
+func show() -> void:
+	visible = true
+	if sprite:
+		sprite.visible = true
+
+func hide() -> void:
+	visible = false
+	if sprite:
+		sprite.visible = false
+
 func set_color(color: Color) -> void:
 	tint_color = color
 	if sprite:
 		sprite.modulate = tint_color
 
-# New methods for controlling rendering order
 func set_z_index(z: int) -> void:
 	z_index = z
 	if sprite:

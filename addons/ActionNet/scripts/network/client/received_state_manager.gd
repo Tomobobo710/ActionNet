@@ -15,9 +15,12 @@ var received_physics_objects: Node
 
 func _init(client_ref: ActionNetClient) -> void:
 	client = client_ref
-	# Initialize world registry
 	world_registry = WorldStateRegistry.new()
 	add_child(world_registry)
+	
+	# Connect to debug UI visibility changes
+	if client.manager and client.manager.debug_ui:
+		client.manager.debug_ui.visibility_changed_custom.connect(_on_debug_ui_visibility_changed)
 
 func setup() -> void:
 	# Create a separate scene tree for received state
@@ -33,6 +36,23 @@ func setup() -> void:
 	received_physics_objects.name = "Received Physics Objects"
 	received_world.add_child(received_physics_objects)
 
+func _on_debug_ui_visibility_changed(is_visible: bool) -> void:
+	update_received_objects_visibility(is_visible)
+
+func update_received_objects_visibility(is_visible: bool) -> void:
+	if received_client_objects:
+		for object in received_client_objects.get_children():
+			if is_visible:
+				object.show()
+			else:
+				object.hide()
+	
+	if received_physics_objects:
+		for object in received_physics_objects.get_children():
+			if is_visible:
+				object.show()
+			else:
+				object.hide()
 
 func process_world_state(state: Dictionary) -> void:
 	# Add this state to the server-authoritative world state registry
@@ -74,6 +94,12 @@ func update_received_client_objects(state_objects: Dictionary) -> void:
 				var client_object = client_object_scene.instantiate()
 				client_object.name = str(client_id)
 				received_client_objects.add_child(client_object)
+				# Set initial visibility based on debug UI state
+				if client.manager and client.manager.debug_ui:
+					if client.manager.debug_ui.visible:
+						client_object.show()
+					else:
+						client_object.hide()
 		
 		if received_client_objects.has_node(str(client_id)):
 			var client_object = received_client_objects.get_node(str(client_id))
@@ -107,6 +133,12 @@ func update_received_physics_objects(state_objects: Dictionary) -> void:
 				physics_object = physics_object_scene.instantiate()
 				physics_object.name = safe_name
 				received_physics_objects.add_child(physics_object)
+				# Set initial visibility based on debug UI state
+				if client.manager and client.manager.debug_ui:
+					if client.manager.debug_ui.visible:
+						physics_object.show()
+					else:
+						physics_object.hide()
 			else:
 				print("[ReceivedStateManager] Error: No physics object registered with type: ", object_type)
 				continue

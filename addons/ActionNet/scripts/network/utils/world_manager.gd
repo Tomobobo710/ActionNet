@@ -109,14 +109,9 @@ func perform_reprediction(server_state: Dictionary, client_id: int) -> void:
 	# Track timing for state application
 	var state_update_start = Time.get_ticks_msec()
 	
-	# 1. Update our world registry with the authoritative state
+	# Update our world registry and set our world to match the authoritative state
 	world_registry.add_state(server_state)
-	
-	# 2. Set our world to match the authoritative state
 	set_world_state(server_state)
-	
-	# 3. Set our sequence to match the server's sequence
-	#sequence = server_sequence
 	
 	var state_update_time = Time.get_ticks_msec() - state_update_start
 	print("[WorldManager] State update took ", state_update_time, "ms")
@@ -125,12 +120,12 @@ func perform_reprediction(server_state: Dictionary, client_id: int) -> void:
 	var frames_to_repredict = target_sequence - server_sequence
 	
 	if frames_to_repredict <= 0:
-		print("[WorldManager] No frames to repredict")
+		print("[WorldManager] Error! No frames to repredict!")
 		var total_time = Time.get_ticks_msec() - start_time
 		print("[WorldManager] Total process took ", total_time, "ms")
 		return
 		
-	print("[WorldManager] Repredicting ", frames_to_repredict, " frames")
+	#print("[WorldManager] Repredicting ", frames_to_repredict, " frames")
 	
 	# Track timing for reprediction loop
 	var reprediction_start = Time.get_ticks_msec()
@@ -142,14 +137,13 @@ func perform_reprediction(server_state: Dictionary, client_id: int) -> void:
 		
 		# Apply inputs for this sequence to our client object
 		for client_object in client_objects.get_children():
-			#var client_id = int(str(client_object.name))
 			if client_object.name.to_int() == client_id:
 				var input = manager.client.input_registry.get_input_for_sequence(client_id, repredicted_sequence)
 			
 				if input.is_empty():
-					print("[WorldManager] Warning: No input found for sequence ", repredicted_sequence, " client ", client_id)
+					print("[WorldManager] Warning: No input found for sequence when repredicting sequence: ", repredicted_sequence, " for client ", client_id)
 					continue
-				print("[WorldManager] Repredicting input for client id: ", client_id)
+				#print("[WorldManager] Repredicting input for client id: ", client_id)
 				client_object.apply_input(input, manager.client.clock.tick_rate) # Using standard tick rate for reprediction
 				client_object.update(manager.client.clock.tick_rate)
 		
@@ -169,10 +163,10 @@ func perform_reprediction(server_state: Dictionary, client_id: int) -> void:
 		world_registry.add_state(repredicted_state)
 		
 		var frame_time = Time.get_ticks_msec() - frame_start
-		print("[WorldManager] Repredicted sequence ", repredicted_sequence, " in ", frame_time, "ms")
+		#print("[WorldManager] Repredicted sequence ", repredicted_sequence, " in ", frame_time, "ms")
 	
 	var reprediction_time = Time.get_ticks_msec() - reprediction_start
-	print("[WorldManager] Reprediction loop took ", reprediction_time, "ms")
+	#print("[WorldManager] Reprediction loop took ", reprediction_time, "ms")
 	
 	# Verify we're at the expected sequence
 	if sequence != target_sequence:
@@ -180,7 +174,9 @@ func perform_reprediction(server_state: Dictionary, client_id: int) -> void:
 				  target_sequence, " but ended at ", sequence)
 	
 	var total_time = Time.get_ticks_msec() - start_time
-	sequence += 1 # one final one to put us where we want to be
+	
+	sequence += 1 # one final sequence increment to get us where we want to be
+	
 	print("[WorldManager] Reprediction complete. Total process took ", total_time, "ms. Current frame for world manager is: ", sequence)
 
 func auto_spawn_physics_objects() -> void:
