@@ -34,44 +34,11 @@ func create(port: int, max_clients: int) -> Error:
 		OK:
 			print("[ActionNetServer] Server created on port ", port)
 			
-			# Initialize world
-			server_world = manager.get_world_scene().instantiate()
-			server_world.name = "ServerWorld"
-			add_child(server_world)
-			
-			# Set up networking
-			server_multiplayer = MultiplayerAPI.create_default_interface()
-			server_multiplayer.multiplayer_peer = network
-			server_multiplayer.set_root_path(get_path())
-			get_tree().set_multiplayer(server_multiplayer, self.get_path())
-			
-			server_multiplayer.peer_connected.connect(_on_peer_connected)
-			server_multiplayer.peer_disconnected.connect(_on_peer_disconnected)
-			server_multiplayer.server_relay = true
-			manager.server_multiplayer_api = server_multiplayer
-			
-			# Initialize world management
-			collision_manager = CollisionManager.new()
-			world_manager = WorldManager.new()
-			world_manager.initialize(server_world, collision_manager, manager)
-			world_manager.object_spawned.connect(_on_object_spawned)
-			add_child(world_manager)
-			
-			# Initialize clock
-			clock = ActionNetClock.new()
-			clock.connect("tick", Callable(self, "_on_tick"))
-			add_child(clock)
-			
-			# Set up polling
-			var poll_timer = Timer.new()
-			poll_timer.wait_time = 0.001
-			poll_timer.timeout.connect(_on_poll_timer_timeout)
-			add_child(poll_timer)
-			poll_timer.start()
-			
-			# Register world objects and auto-spawn
-			world_manager.register_existing_physics_objects()
-			world_manager.auto_spawn_physics_objects()
+			setup_server_world()
+			setup_multiplayer()
+			setup_world_manager()
+			setup_clock()
+			setup_polling()
 			
 			return OK
 			
@@ -90,6 +57,57 @@ func create(port: int, max_clients: int) -> Error:
 		_:
 			print("[ActionNetServer] Failed to create server. Error code: ", error)
 			return error
+
+func setup_server_world():
+	# Initialize world
+	server_world = manager.get_world_scene().instantiate()
+	server_world.name = "ServerWorld"
+	add_child(server_world)
+
+func setup_multiplayer():
+	# Set up networking
+	server_multiplayer = MultiplayerAPI.create_default_interface()
+	server_multiplayer.multiplayer_peer = network
+	server_multiplayer.set_root_path(get_path())
+	get_tree().set_multiplayer(server_multiplayer, self.get_path())
+	server_multiplayer.peer_connected.connect(_on_peer_connected)
+	server_multiplayer.peer_disconnected.connect(_on_peer_disconnected)
+	server_multiplayer.server_relay = true
+	manager.server_multiplayer_api = server_multiplayer
+
+func setup_world_manager():
+	# Initialize world management
+	collision_manager = CollisionManager.new()
+	world_manager = WorldManager.new()
+	world_manager.initialize(server_world, collision_manager, manager)
+	world_manager.object_spawned.connect(_on_object_spawned)
+	add_child(world_manager)
+	# Register world objects and auto-spawn
+	world_manager.register_existing_physics_objects()
+	world_manager.auto_spawn_physics_objects()
+
+func setup_clock():
+	# Initialize clock
+	clock = ActionNetClock.new()
+	clock.connect("tick", Callable(self, "_on_tick"))
+	add_child(clock)
+
+func setup_polling():
+	# Set up polling
+	var poll_timer = Timer.new()
+	poll_timer.wait_time = 0.001
+	poll_timer.timeout.connect(_on_poll_timer_timeout)
+	add_child(poll_timer)
+	poll_timer.start()
+
+func handle_input():
+	# Apply inputs for all client objects
+	var client_objects = world_manager.client_objects
+	for client_object in client_objects.get_children():
+		var client_id = int(str(client_object.name))
+		var input = input_registry.get_input_for_sequence(client_id, world_manager.sequence)
+		#print("[ActionNetServer] Got input for client ", client_id, " for the sequence to process: ", world_manager.sequence)
+		client_object.apply_input(input, clock.tick_rate)
 
 func _on_object_spawned(object: Node, type: String) -> void:
 	if type == "client":
@@ -130,13 +148,7 @@ func _on_poll_timer_timeout():
 		server_multiplayer.poll()
 
 func _on_tick(clock_sequence: int) -> void:
-	# Apply inputs for all client objects
-	var client_objects = world_manager.client_objects
-	for client_object in client_objects.get_children():
-		var client_id = int(str(client_object.name))
-		var input = input_registry.get_input_for_sequence(client_id, world_manager.sequence)
-		#print("[ActionNetServer] Got input for client ", client_id, " for the sequence to process: ", world_manager.sequence)
-		client_object.apply_input(input, clock.tick_rate)
+	handle_input()
 	
 	# Update world state
 	world_manager.update(clock.tick_rate)
