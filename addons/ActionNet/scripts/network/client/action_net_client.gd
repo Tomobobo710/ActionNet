@@ -112,6 +112,7 @@ func _on_connected_to_server() -> void:
 	emit_signal("connected")
 
 func _on_handshake_completed() -> void:
+	connection_manager.check_sequence_adjustment()
 	is_sending_inputs = true
 	emit_signal("handshake_completed")
 
@@ -128,6 +129,7 @@ func _on_object_spawned(object: Node, type: String) -> void:
 
 func _on_sequence_adjusted(new_sequence: int, reason: String) -> void:
 	world_manager.sequence = new_sequence
+	
 	emit_signal("sequence_adjusted", new_sequence, reason)
 
 func _on_tick(clock_sequence: int) -> void:
@@ -139,35 +141,36 @@ func handle_input() -> void:
 	# Check prediction
 	if world_manager:
 		world_manager.check_prediction(received_state_manager.world_registry.get_newest_state(), client_multiplayer.get_unique_id())
-		print("[ActionNetClient] Prediction check done, world manager sequence is: ", world_manager.sequence, ". handling input...")
+		#print("[ActionNetClient] Prediction check done, world manager sequence is: ", world_manager.sequence, ". handling input...")
 	if is_sending_inputs:
 		connection_manager.check_sequence_adjustment()
-		# Get and store current input before sending
-		var current_input = {}
-		for action_name in manager.input_definitions:
-			var input_def = manager.input_definitions[action_name]
-			current_input[action_name] = input_def.get_input_value()
-		
-		print("[ActionNetClient] Connection manager current sequence is: ", connection_manager.get_client_sequence())
-		current_input["sequence"] = world_manager.sequence
-		input_registry.store_input(client_multiplayer.get_unique_id(), current_input)
-		
-		# Apply input to client object and update world
-		var client_objects = world_manager.client_objects
-		for client_object in client_objects.get_children():
-			var client_id = int(str(client_object.name))
-			var input = input_registry.get_input_for_sequence(client_id, world_manager.sequence)
-			client_object.apply_input(input, clock.tick_rate)
-		
-		# Update predicted world state
-		world_manager.update(clock.tick_rate)
-		
-		# Increment the world manager's sequence manually...
-		world_manager.sequence += 1
-		
-		# Send input to server (existing functionality)
-		send_input()
-		print("[ActionNetClient] Input handling done. World manager sequence is now: ", world_manager.sequence)
+		if world_manager.sequence != 0:
+			# Get and store current input before sending
+			var current_input = {}
+			for action_name in manager.input_definitions:
+				var input_def = manager.input_definitions[action_name]
+				current_input[action_name] = input_def.get_input_value()
+			
+			#print("[ActionNetClient] Connection manager current sequence is: ", connection_manager.get_client_sequence())
+			current_input["sequence"] = world_manager.sequence
+			input_registry.store_input(client_multiplayer.get_unique_id(), current_input)
+			
+			# Apply input to client object and update world
+			var client_objects = world_manager.client_objects
+			for client_object in client_objects.get_children():
+				var client_id = int(str(client_object.name))
+				var input = input_registry.get_input_for_sequence(client_id, world_manager.sequence)
+				client_object.apply_input(input, clock.tick_rate)
+			
+			# Update predicted world state
+			world_manager.update(clock.tick_rate)
+			
+			# Send input to server
+			send_input()
+			
+			# Increment the world manager's sequence manually...
+			world_manager.sequence += 1
+			#print("[ActionNetClient] Input handling done. World manager sequence is now: ", world_manager.sequence)
 
 func _on_poll_timer_timeout() -> void:
 	if client_multiplayer and client_multiplayer.has_multiplayer_peer():
@@ -198,7 +201,7 @@ func send_input() -> void:
 		current_input[action_name] = input_def.get_input_value()
 	
 	if client_multiplayer.multiplayer_peer.get_connection_status() == MultiplayerPeer.CONNECTION_CONNECTED:
-		current_input["sequence"] = connection_manager.get_client_sequence()
+		current_input["sequence"] = world_manager.sequence
 		rpc("receive_input", current_input)
 
 func poll() -> void:

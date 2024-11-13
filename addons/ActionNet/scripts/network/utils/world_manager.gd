@@ -151,6 +151,7 @@ func perform_reprediction(server_state: Dictionary, client_id: int) -> void:
 					continue
 				print("[WorldManager] Repredicting input for client id: ", client_id)
 				client_object.apply_input(input, manager.client.clock.tick_rate) # Using standard tick rate for reprediction
+				client_object.update(manager.client.clock.tick_rate)
 		
 		# Update physics objects and resolve collisions
 		for physics_object in physics_objects.get_children():

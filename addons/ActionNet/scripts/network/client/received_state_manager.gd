@@ -39,7 +39,7 @@ func process_world_state(state: Dictionary) -> void:
 	world_registry.add_state(state)
 	
 	var sequence = state["sequence"]
-	print("[ReceivedStateManager] Recieved state with sequence: ", sequence)
+	#print("[ReceivedStateManager] Recieved state with sequence: ", sequence)
 	# Skip if we've already processed this state
 	if sequence <= last_processed_sequence:
 		return
