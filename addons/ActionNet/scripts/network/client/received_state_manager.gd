@@ -40,12 +40,19 @@ func _on_debug_ui_visibility_changed(is_visible: bool) -> void:
 	update_received_objects_visibility(is_visible)
 
 func update_received_objects_visibility(is_visible: bool) -> void:
+	var local_client_id = str(client.multiplayer.get_unique_id())
+	
 	if received_client_objects:
 		for object in received_client_objects.get_children():
-			if is_visible:
-				object.show()
+			# Only update visibility for local client object
+			if object.name == local_client_id:
+				if is_visible:
+					object.show()
+				else:
+					object.hide()
+			# Remote client objects always stay visible
 			else:
-				object.hide()
+				object.show()
 	
 	if received_physics_objects:
 		for object in received_physics_objects.get_children():
@@ -83,6 +90,7 @@ func process_world_state(state: Dictionary) -> void:
 
 func update_received_client_objects(state_objects: Dictionary) -> void:
 	var updated_objects = []
+	var local_client_id = str(client.multiplayer.get_unique_id())
 	
 	for client_id in state_objects:
 		var object_state = state_objects[client_id]
@@ -94,12 +102,16 @@ func update_received_client_objects(state_objects: Dictionary) -> void:
 				var client_object = client_object_scene.instantiate()
 				client_object.name = str(client_id)
 				received_client_objects.add_child(client_object)
-				# Set initial visibility based on debug UI state
-				if client.manager and client.manager.debug_ui:
-					if client.manager.debug_ui.visible:
-						client_object.show()
+				# Set initial visibility based on whether it's a local or remote client
+				if str(client_id) == local_client_id:
+					# Local client follows debug UI visibility
+					if client.manager and client.manager.debug_ui:
+						client_object.visible = client.manager.debug_ui.visible
 					else:
 						client_object.hide()
+				else:
+					# Remote clients are always visible
+					client_object.show()
 		
 		if received_client_objects.has_node(str(client_id)):
 			var client_object = received_client_objects.get_node(str(client_id))
@@ -135,10 +147,9 @@ func update_received_physics_objects(state_objects: Dictionary) -> void:
 				received_physics_objects.add_child(physics_object)
 				# Set initial visibility based on debug UI state
 				if client.manager and client.manager.debug_ui:
-					if client.manager.debug_ui.visible:
-						physics_object.show()
-					else:
-						physics_object.hide()
+					physics_object.visible = client.manager.debug_ui.visible
+				else:
+					physics_object.hide()
 			else:
 				print("[ReceivedStateManager] Error: No physics object registered with type: ", object_type)
 				continue
