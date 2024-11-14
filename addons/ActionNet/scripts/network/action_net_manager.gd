@@ -10,6 +10,8 @@ signal connection_failed
 signal server_disconnected
 
 var server: ActionNetServer
+var server_logic_handler: LogicHandler
+var client_logic_handler: LogicHandler
 var client: ActionNetClient
 
 var server_multiplayer_api: MultiplayerAPI
@@ -33,19 +35,34 @@ func _ready():
 	initialize_debug_ui()
 	register_default_inputs()
 	create_default_world_scene()
+	create_default_logic_handlers()
 	
 	# Create both server and client to ensure "scene tree" layout matches
 	if not server:
 		server = ActionNetServer.new()
 		server.name = "Server"
-		server.manager = self
+		server.logic_handler = server_logic_handler
 		get_tree().root.add_child.call_deferred(server)
 	if not client:
 		client = ActionNetClient.new()
 		client.name = "Client"
-		client.manager = self
+		client.logic_handler = client_logic_handler
 		client.server_disconnected.connect(_on_server_disconnected)
 		get_tree().root.add_child.call_deferred(client)
+
+func set_server_logic_handler(new_handler: LogicHandler):
+	server_logic_handler = new_handler
+	if server:
+		server.logic_handler = server_logic_handler
+
+func set_client_logic_handler(new_handler: LogicHandler):
+	client_logic_handler = new_handler
+	if client:
+		client.logic_handler = client_logic_handler
+
+func create_default_logic_handlers():
+	server_logic_handler = LogicHandler.new()
+	client_logic_handler = LogicHandler.new()
 
 func _on_server_disconnected() -> void:
 	show_error_popup("Lost connection to server")

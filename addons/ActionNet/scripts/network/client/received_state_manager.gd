@@ -19,12 +19,12 @@ func _init(client_ref: ActionNetClient) -> void:
 	add_child(world_registry)
 	
 	# Connect to debug UI visibility changes
-	if client.manager and client.manager.debug_ui:
-		client.manager.debug_ui.visibility_changed_custom.connect(_on_debug_ui_visibility_changed)
+	if ActionNetManager.debug_ui:
+		ActionNetManager.debug_ui.visibility_changed_custom.connect(_on_debug_ui_visibility_changed)
 
 func setup() -> void:
 	# Create a separate scene tree for received state
-	received_world = client.manager.get_world_scene().instantiate()
+	received_world = ActionNetManager.get_world_scene().instantiate()
 	received_world.name = "ReceivedWorld"
 	add_child(received_world)
 	
@@ -97,7 +97,7 @@ func update_received_client_objects(state_objects: Dictionary) -> void:
 		updated_objects.append(str(client_id))
 		
 		if not received_client_objects.has_node(str(client_id)):
-			var client_object_scene = client.manager.get_client_object_scene()
+			var client_object_scene = ActionNetManager.get_client_object_scene()
 			if client_object_scene:
 				var client_object = client_object_scene.instantiate()
 				client_object.name = str(client_id)
@@ -105,8 +105,8 @@ func update_received_client_objects(state_objects: Dictionary) -> void:
 				# Set initial visibility based on whether it's a local or remote client
 				if str(client_id) == local_client_id:
 					# Local client follows debug UI visibility
-					if client.manager and client.manager.debug_ui:
-						client_object.visible = client.manager.debug_ui.visible
+					if ActionNetManager.debug_ui:
+						client_object.visible = ActionNetManager.debug_ui.visible
 					else:
 						client_object.hide()
 				else:
@@ -140,14 +140,14 @@ func update_received_physics_objects(state_objects: Dictionary) -> void:
 		
 		if not physics_object:
 			var object_type = object_state["type"]
-			var physics_object_scene = client.manager.get_physics_object_scene(object_type)
+			var physics_object_scene = ActionNetManager.get_physics_object_scene(object_type)
 			if physics_object_scene:
 				physics_object = physics_object_scene.instantiate()
 				physics_object.name = safe_name
 				received_physics_objects.add_child(physics_object)
 				# Set initial visibility based on debug UI state
-				if client.manager and client.manager.debug_ui:
-					physics_object.visible = client.manager.debug_ui.visible
+				if ActionNetManager.debug_ui:
+					physics_object.visible = ActionNetManager.debug_ui.visible
 				else:
 					physics_object.hide()
 			else:

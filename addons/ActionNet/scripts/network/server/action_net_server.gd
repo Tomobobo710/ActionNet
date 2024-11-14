@@ -6,14 +6,15 @@ var port: int
 var max_clients: int
 var clients: Dictionary = {}
 
-var manager: ActionNetManager
 var clock: ActionNetClock
 var world_manager: WorldManager
 var collision_manager: CollisionManager
 var input_registry: InputRegistry
+var logic_handler: LogicHandler
 var server_world: Node
 var server_multiplayer: MultiplayerAPI
 var network: ENetMultiplayerPeer
+var processed_state: Dictionary
 
 signal client_connected(peer_id: int)
 signal client_disconnected(peer_id: int)
@@ -60,7 +61,7 @@ func create(port: int, max_clients: int) -> Error:
 
 func setup_server_world():
 	# Initialize world
-	server_world = manager.get_world_scene().instantiate()
+	server_world = ActionNetManager.get_world_scene().instantiate()
 	server_world.name = "ServerWorld"
 	add_child(server_world)
 
@@ -73,13 +74,13 @@ func setup_multiplayer():
 	server_multiplayer.peer_connected.connect(_on_peer_connected)
 	server_multiplayer.peer_disconnected.connect(_on_peer_disconnected)
 	server_multiplayer.server_relay = true
-	manager.server_multiplayer_api = server_multiplayer
+	ActionNetManager.server_multiplayer_api = server_multiplayer
 
 func setup_world_manager():
 	# Initialize world management
 	collision_manager = CollisionManager.new()
 	world_manager = WorldManager.new()
-	world_manager.initialize(server_world, collision_manager, manager)
+	world_manager.initialize(server_world, collision_manager, ActionNetManager)
 	world_manager.object_spawned.connect(_on_object_spawned)
 	add_child(world_manager)
 	# Register world objects and auto-spawn
@@ -154,7 +155,13 @@ func _on_tick(clock_sequence: int) -> void:
 	world_manager.update(clock.tick_rate)
 	#print("[ActionNetServer] Server world manager sequence updated, is now: ", world_manager.sequence)
 	
-	var processed_state = world_manager.get_world_state()
+	processed_state = world_manager.get_world_state()
+	
+	# processed_state is like, super valuable
+	# it's the result of all the networking work
+	# before we send the state to the client, we can jump in right here and execute custom logic that a developer implements
+	
+	logic_handler.update()
 	
 	# Send world state to all clients
 	if not clients.is_empty():

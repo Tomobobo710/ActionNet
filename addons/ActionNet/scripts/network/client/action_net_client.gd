@@ -11,13 +11,14 @@ signal handshake_completed
 signal sequence_adjusted(new_offset: int, reason: String)
 signal prediction_missed(sequence: int, server_state: Dictionary, client_state: Dictionary)
 
-var manager: ActionNetManager
+#var manager: ActionNetManager
 var clock: ActionNetClock
 var connection_manager: ClientConnectionManager
 var received_state_manager: ReceivedStateManager
 var input_registry: InputRegistry
 var world_manager: WorldManager
 var collision_manager: CollisionManager
+var logic_handler: LogicHandler
 var network: ENetMultiplayerPeer
 var client_multiplayer: MultiplayerAPI
 var client_world: Node
@@ -52,11 +53,11 @@ func setup_multiplayer() -> void:
 	client_multiplayer.connection_failed.connect(_on_connection_failed)
 	client_multiplayer.server_disconnected.connect(_on_server_disconnected)
 	
-	manager.client_multiplayer_api = client_multiplayer
+	ActionNetManager.client_multiplayer_api = client_multiplayer
 
 func setup_client_world() -> void:
 	# Create client predicted world
-	client_world = manager.get_world_scene().instantiate()
+	client_world = ActionNetManager.get_world_scene().instantiate()
 	client_world.name = "ClientWorld"
 	add_child(client_world)
 	
@@ -68,7 +69,7 @@ func setup_client_world() -> void:
 	# Initialize managers for prediction
 	collision_manager = CollisionManager.new()
 	world_manager = WorldManager.new()
-	world_manager.initialize(client_world, collision_manager, manager)
+	world_manager.initialize(client_world, collision_manager, ActionNetManager)
 	# Connect to signals
 	world_manager.object_spawned.connect(_on_object_spawned)
 	world_manager.prediction_missed.connect(_on_prediction_missed)
@@ -136,6 +137,12 @@ func _on_tick(clock_sequence: int) -> void:
 	connection_manager.update()
 	poll()
 	handle_input()
+	
+	# At this point, we should have our results of all the stuff related to networking
+	# like, we have a world registry in ReceivedStateManager and WorldManager
+	# and we hope that should be enough info to do whatever the developer needs with their game 
+	# so we can then give control over to the developer for their logic processing
+	logic_handler.update()
 
 func handle_input() -> void:
 	# Check prediction
@@ -147,8 +154,8 @@ func handle_input() -> void:
 		if world_manager.sequence != 0: # This check is a hack to make sure we don't send inputs too early
 			# Get and store current input before sending
 			var current_input = {}
-			for action_name in manager.input_definitions:
-				var input_def = manager.input_definitions[action_name]
+			for action_name in ActionNetManager.input_definitions:
+				var input_def = ActionNetManager.input_definitions[action_name]
 				current_input[action_name] = input_def.get_input_value()
 			
 			#print("[ActionNetClient] Connection manager current sequence is: ", connection_manager.get_client_sequence())
@@ -196,8 +203,8 @@ func _on_prediction_missed(sequence: int, server_state: Dictionary, client_state
 
 func send_input() -> void:
 	var current_input = {}
-	for action_name in manager.input_definitions:
-		var input_def = manager.input_definitions[action_name]
+	for action_name in ActionNetManager.input_definitions:
+		var input_def = ActionNetManager.input_definitions[action_name]
 		current_input[action_name] = input_def.get_input_value()
 	
 	if client_multiplayer.multiplayer_peer.get_connection_status() == MultiplayerPeer.CONNECTION_CONNECTED:

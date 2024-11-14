@@ -397,8 +397,8 @@ func update_client_stats(update_heavy_stats: bool):
 		
 		# Input Stats
 		var input_info = "Input Information:"
-		if client.manager and client.manager.input_definitions:
-			input_info += "\nRegistered Actions: " + str(client.manager.input_definitions.keys())
+		if ActionNetManager.input_definitions:
+			input_info += "\nRegistered Actions: " + str(ActionNetManager.input_definitions.keys())
 		client_input_label.text = input_info
 
 func update_server_stats(update_heavy_stats: bool):

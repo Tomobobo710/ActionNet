@@ -14,6 +14,10 @@ func _ready():
 	register_objects()
 	setup_inputs()
 	create_custom_world_scene()
+	# Set the custom server logic handler
+	var custom_logic_handler = CustomServerLogicHandler.new()
+	add_child(custom_logic_handler)
+	ActionNetManager.set_server_logic_handler(custom_logic_handler)
 	# Connect to server disconnection signal
 	ActionNetManager.server_disconnected.connect(_on_server_disconnected)
 	
