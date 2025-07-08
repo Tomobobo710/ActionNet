@@ -9,7 +9,7 @@ const BOX_RESTITUTION = 10
 func _init():
 	super._init()
 	# Position will be set when instantiating
-	sprite_texture = load("res://rectangle_texture.png")
+	sprite_texture = load("res://addons/ActionNetDemo/sprites/rectangle_texture.png")
 	MASS = BOX_MASS
 	RESTITUTION = BOX_RESTITUTION
 	auto_spawn = false  # Disabled auto-spawn - no floating box

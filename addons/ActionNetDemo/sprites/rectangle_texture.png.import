@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://23mlscs2xwvn"
-path="res://.godot/imported/ball_texture.png-087fca606c40d08895d966679d621c13.ctex"
+uid="uid://0ssuxp85hfgp"
+path="res://.godot/imported/rectangle_texture.png-37a2c602307e23ab47f197ba077dc2a6.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://ball_texture.png"
-dest_files=["res://.godot/imported/ball_texture.png-087fca606c40d08895d966679d621c13.ctex"]
+source_file="res://addons/ActionNetDemo/sprites/rectangle_texture.png"
+dest_files=["res://.godot/imported/rectangle_texture.png-37a2c602307e23ab47f197ba077dc2a6.ctex"]
 
 [params]
 

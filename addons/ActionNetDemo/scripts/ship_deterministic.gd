@@ -15,7 +15,7 @@ var max_kick_cooldown: float = 0.3
 func _init():
 	super._init()
 	ANGULAR_MASS = 0
-	sprite_texture = load("res://ship_texture.png")
+	sprite_texture = load("res://addons/ActionNetDemo/sprites/ship_texture.png")
 
 func apply_input(input: Dictionary, tick_rate: int):
 	# Update cooldowns

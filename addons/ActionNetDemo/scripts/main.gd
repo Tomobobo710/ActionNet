@@ -84,17 +84,20 @@ func register_soccer_objects():
 	# - Ball: auto_spawn=true (always present at game start)
 	# - GoalPosts: auto_spawn=true (static world collision elements)
 	# - Box: auto_spawn=false (available for dynamic spawning)
+	# Load consolidated goalpost script
+	var goalposts_script = load("res://addons/ActionNetDemo/scripts/goalposts.gd")
+	
 	var soccer_objects = {
 		"ball": Ball,                    # Appears at (640,360) automatically
 		"box": Box,                     # Blueprint only - no auto-spawn
-		# Invisible physics collision boxes for goal posts
+		# Invisible physics collision boxes for goal posts (now consolidated in one file)
 		# Positioned to match ColorRect visuals in client_logic.gd
-		"redgoalback": RedGoalBack,     # Left goal back wall
-		"redgoaltop": RedGoalTop,       # Left goal top beam
-		"redgoalbottom": RedGoalBottom, # Left goal bottom beam
-		"bluegoalback": BlueGoalBack,   # Right goal back wall
-		"bluegoaltop": BlueGoalTop,     # Right goal top beam
-		"bluegoalbottom": BlueGoalBottom # Right goal bottom beam
+		"redgoalback": goalposts_script.RedGoalBack,     # Left goal back wall
+		"redgoaltop": goalposts_script.RedGoalTop,       # Left goal top beam
+		"redgoalbottom": goalposts_script.RedGoalBottom, # Left goal bottom beam
+		"bluegoalback": goalposts_script.BlueGoalBack,   # Right goal back wall
+		"bluegoaltop": goalposts_script.BlueGoalTop,     # Right goal top beam
+		"bluegoalbottom": goalposts_script.BlueGoalBottom # Right goal bottom beam
 	}
 	
 	for object_name in soccer_objects:

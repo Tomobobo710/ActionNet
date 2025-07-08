@@ -8,7 +8,7 @@ const BALL_RESTITUTION = 10
 
 func _init():
 	super._init(Physics.vec2(640, 360))  # Spawn at center
-	sprite_texture = load("res://ball_texture.png")
+	sprite_texture = load("res://addons/ActionNetDemo/sprites/ball_texture.png")
 	MASS = BALL_MASS
 	RESTITUTION = BALL_RESTITUTION
 	auto_spawn = true
