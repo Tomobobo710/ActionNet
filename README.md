@@ -1,38 +1,15 @@
 # ActionNet
 
-**ActionNet** is a server-authoritative 2D deterministic physics engine and networking framework built for Godot. It provides real-time multiplayer networking with deterministic physics simulation, ensuring consistent gameplay across all clients.
+**ActionNet** is a server-authoritative 2D deterministic physics engine and networking framework built for Godot. It provides a complete multiplayer solution with sophisticated client-side prediction, deterministic physics simulation, and professional debugging tools.
 
-## 🚀 Features
+## 🚀 Framework Overview
 
-### Core Framework
-- **Server-Authoritative Architecture**: Prevents cheating with authoritative game state
-- **Deterministic 2D Physics**: Fixed-point arithmetic ensures identical physics across machines
-- **Client-Side Prediction**: Smooth gameplay with rollback and reconciliation
-- **Flexible Input System**: Supports both Godot actions and raw key codes
-- **Auto-Spawn Object System**: Automatic and manual object creation patterns
-- **Collision Detection**: Circle-circle, rectangle-rectangle, and circle-rectangle collisions
-- **World State Synchronization**: Automatic state distribution to all connected clients
-- **Debug UI**: Built-in networking diagnostics and performance monitoring
-- **Custom Logic Handlers**: Separate server and client logic systems
-- **Lookup Table Optimization**: Precomputed trigonometry for deterministic calculations
+ActionNet delivers a comprehensive multiplayer framework consisting of four integrated systems:
 
-### Physics Engine
-- **Fixed-Point Arithmetic**: Uses 1000x scaling for sub-pixel precision and determinism
-- **Shape Support**: Circles and rectangles with full collision resolution
-- **Mass & Velocity**: Realistic physics with mass, velocity, and angular momentum
-- **Force Application**: Apply forces, handle collisions, and boundary detection
-- **Restitution**: Configurable bounce and damping properties
-- **Static Objects**: Immovable collision boundaries for level geometry
-- **Impulse-Based Resolution**: Proper collision response with separation handling
-
-### Networking
-- **Client-Server Model**: Dedicated server with multiple client support
-- **Client-Side Prediction**: Clients simulate physics locally for responsive gameplay
-- **Server Reconciliation**: Rollback and re-prediction when client differs from server
-- **Connection Management**: Automatic client connection handling
-- **Sequence Management**: Frame-perfect synchronization with sequence numbers
-- **State Compression**: Efficient world state transmission
-- **RTT Monitoring**: Real-time latency measurement and adjustment
+- **Deterministic Physics Engine**: Fixed-point 2D physics with circle/rectangle collision detection
+- **Server-Authoritative Networking**: Client prediction with rollback reconciliation
+- **Complete UI Solution**: Ready-to-use connection interface and debug visualization
+- **Production Tools**: Performance monitoring, state visualization, and diagnostic systems
 
 ## 📦 Installation
 
@@ -41,563 +18,222 @@
    res://addons/ActionNet/
    ```
 
-2. **Enable the plugin** in your Project Settings:
-   - Go to `Project > Project Settings > Plugins`
-   - Find "ActionNet" and enable it
-   - The framework will automatically add the `ActionNetManager` autoload
+2. **Enable the plugin** in Project Settings → Plugins → "ActionNet"
+   - Automatically adds `ActionNetManager` autoload singleton
 
-3. **Optional: Install the demo** for examples:
+3. **Optional: Install demo** for implementation examples:
    ```
    res://addons/ActionNetDemo/
    ```
-   Enable the "ActionNetDemo" plugin as well.
 
-## 🏗️ Architecture
+## 🏗️ Framework Architecture
 
-### Core Components
+### Core Management Layer
 
-#### ActionNetManager (Autoload Singleton)
-The central hub that manages all ActionNet functionality:
-- Creates and manages server/client instances
-- Handles object and input registration
-- Provides debug UI access
-- Manages world scenes and logic handlers
+**ActionNetManager (Autoload Singleton)**
+- Central coordination hub for all framework systems
+- Manages server/client instance lifecycle
+- Handles object registration and input mapping
+- Provides unified access to debug tools and world management
+- Orchestrates logic handler injection points
 
-#### ActionNetPhysObject2D
-Base class for all networked physics objects:
-```gdscript
-extends ActionNetPhysObject2D
-class_name MyObject
+**WorldManager**
+- Object lifecycle management (auto-spawn vs manual creation)
+- World state capture and restoration for rollback prediction
+- Client-side prediction with server reconciliation
+- Object registration with collision and networking systems
+- State comparison and mismatch detection for prediction correction
 
-func _init():
-    super._init(Physics.vec2(640, 360))  # Position at screen center
-    MASS = 1000
-    RESTITUTION = 800  # Bounciness (0-1000)
-    shape_type = Physics.ShapeType.CIRCLE
-    shape_data = {"radius": BASE_SIZE / 2}
-    auto_spawn = true  # Appear automatically in world
-```
+**CollisionManager**
+- Broad-phase collision detection between all registered objects
+- Integration with shape-specific physics resolution algorithms
+- Static vs dynamic object handling
+- Registration/unregistration system for object lifecycle
 
-#### WorldManager
-Manages object lifecycle and world state:
-- **Auto-Spawning**: Creates objects marked with `auto_spawn = true`
-- **Manual Spawning**: Factory methods for dynamic object creation
-- **State Tracking**: Captures world snapshots for each frame
-- **Prediction System**: Client-side prediction with rollback reconciliation
-- **Object Registration**: Registers objects with collision manager
+### Physics Engine
 
-#### CollisionManager
-Handles physics collision detection and resolution:
-- **Broad-Phase Detection**: Checks all registered object pairs
-- **Collision Resolution**: Calls appropriate physics shape handlers
-- **Static Object Support**: Proper handling of immovable objects
-- **Registration System**: Objects register/unregister for collision detection
+**Deterministic Fixed-Point System**
+- All calculations use integer arithmetic with 1000x scaling factor
+- Guarantees identical results across all machines and platforms
+- Sub-pixel precision for smooth visual movement
+- Coordinate system: `Physics.vec2(640, 360)` = screen center for 1280x720
 
-#### LogicHandler
-Custom game logic extension point:
-```gdscript
-extends LogicHandler
-class_name MyServerLogic
+**Shape-Based Collision Detection**
+- **CirclePhysics**: Circle-circle collision with radius-based detection
+- **RectPhysics**: Rectangle-rectangle and circle-rectangle collision algorithms
+- **Impulse-Based Resolution**: Proper collision response with separation handling
+- **Static Object Support**: Immovable boundaries with correct collision response
 
-func update():
-    # Called every server tick after physics, before network send
-    # Access world state via ActionNetManager.server.world_manager
-    # Perfect for game rules, scoring, AI, win conditions
-    pass
-```
-
-### Deterministic Physics System
-
-#### Physics Class
-Core physics calculations with fixed-point arithmetic:
-- **Coordinate System**: `Physics.vec2(x, y)` converts pixels to physics coordinates
-- **Vector Operations**: Fixed-point vector math and rotations
-- **Collision Detection**: Shape-agnostic collision checking
+**Physics Optimization Systems**
+- **PhysicsTables**: Precomputed sin/cos lookup tables for deterministic trigonometry
 - **Force Application**: Deterministic force and impulse calculations
-
-#### Shape-Specific Physics
-- **CirclePhysics**: Circle collision detection and resolution
-- **RectPhysics**: Rectangle and circle-rectangle collisions
-- **PhysicsTables**: Precomputed sin/cos lookup tables for determinism
-
-#### Key Physics Features
-```gdscript
-# Convert screen coordinates to physics coordinates
-var physics_pos = Physics.vec2(640, 360)  # Screen center
-
-# Apply forces to objects
-var force = Vector2i(1000 * Physics.SCALE, 0)  # Rightward force
-fixed_velocity = Physics.apply_force(fixed_velocity, force, MASS, tick_rate)
-
-# Collision detection between shapes
-var collision = Physics.check_collision(
-    pos1, shape_type1, shape_data1,
-    pos2, shape_type2, shape_data2
-)
-```
-
-### Framework Workflow
-
-1. **Register Objects**: Define what objects exist in your game
-2. **Register Inputs**: Map controls to game actions
-3. **Create World Scene**: Define the game world layout
-4. **Set Logic Handlers**: Implement game rules and presentation
-5. **Start Server/Client**: Launch networking
-
-## 🎮 Quick Start
-
-### Basic Setup
-
-```gdscript
-func _ready():
-    # Register a physics object
-    var ball_scene = create_ball_scene()
-    ActionNetManager.register_physics_object("ball", ball_scene)
-    
-    # Register a client object (player)
-    var player_scene = create_player_scene()
-    ActionNetManager.register_client_object(player_scene)
-    
-    # Register inputs
-    ActionNetManager.register_key_input("move_up", "pressed", KEY_W)
-    ActionNetManager.register_key_input("move_down", "pressed", KEY_S)
-    ActionNetManager.register_godot_input("shoot", "just_pressed", "ui_accept")
-    
-    # Set custom logic
-    var server_logic = MyServerLogic.new()
-    ActionNetManager.set_server_logic_handler(server_logic)
-    
-    var client_logic = MyClientLogic.new()
-    ActionNetManager.set_client_logic_handler(client_logic)
-
-func create_server():
-    ActionNetManager.create_server(9050)
-
-func connect_to_server():
-    ActionNetManager.create_client("127.0.0.1", 9050)
-```
-
-### Physics Object Example
-
-```gdscript
-extends ActionNetPhysObject2D
-class_name Ball
-
-func _init():
-    super._init(Physics.vec2(640, 360))  # Center position
-    
-    # Physics properties
-    MASS = 500
-    RESTITUTION = 800  # Bounciness (0-1000)
-    
-    # Shape definition
-    shape_type = Physics.ShapeType.CIRCLE
-    shape_data = {"radius": BASE_SIZE / 2}
-    
-    # Visual properties
-    sprite_texture = load("res://ball_texture.png")
-    tint_color = Color.WHITE
-    
-    # Auto-spawn when world loads
-    auto_spawn = true
-
-func update(delta: int):
-    # Custom physics behavior
-    if not Physics.is_static(MASS):
-        # Apply drag
-        fixed_velocity = fixed_velocity * 990 / 1000
-        
-        # Custom boundary behavior
-        # ... boundary checking code ...
-    
-    super.update(delta)  # Call base class update
-```
-
-### Input Handling
-
-```gdscript
-extends ActionNetPhysObject2D
-class_name Player
-
-const THRUST_FORCE = 1000 * Physics.SCALE
-
-func apply_input(input: Dictionary, tick_rate: int):
-    # Get input values (automatically handled by ActionNet)
-    var move_up = input.get("move_up", false)
-    var move_down = input.get("move_down", false)
-    var shoot = input.get("shoot", false)
-    
-    # Apply movement
-    if move_up:
-        var force = Vector2i(0, -THRUST_FORCE)
-        fixed_velocity = Physics.apply_force(fixed_velocity, force, MASS, tick_rate)
-    
-    if move_down:
-        var force = Vector2i(0, THRUST_FORCE)
-        fixed_velocity = Physics.apply_force(fixed_velocity, force, MASS, tick_rate)
-    
-    # Handle shooting
-    if shoot:
-        perform_shoot()
-```
-
-## 📚 Advanced Usage
-
-### Coordinate System
-
-ActionNet uses scaled coordinates for deterministic physics:
-
-```gdscript
-# Convert screen coordinates to physics coordinates
-var physics_pos = Physics.vec2(640, 360)  # Screen center
-
-# Physics calculations use Vector2i with SCALE factor
-const SCALE = 1000  # Built into Physics class
-var world_width = 1280 * SCALE   # Full screen width
-var world_height = 720 * SCALE   # Full screen height
-
-# Position objects anywhere in the world
-var top_left = Physics.vec2(0, 0)
-var bottom_right = Physics.vec2(1280, 720)
-```
-
-### Custom Logic Handlers
-
-**Server Logic** (Authoritative):
-```gdscript
-extends LogicHandler
-class_name GameServerLogic
-
-var game_score = 0
-var game_timer = 0.0
-var players_by_team = {"red": [], "blue": []}
-
-func update():
-    # Access server world state
-    var world_manager = ActionNetManager.server.world_manager
-    
-    # Update game timer
-    game_timer += 1.0 / 60.0
-    
-    # Check win conditions
-    if game_score >= 10:
-        handle_game_over()
-    
-    # Add custom data to world state sent to clients
-    ActionNetManager.server.processed_state["game"] = {
-        "score": game_score,
-        "timer": game_timer,
-        "teams": players_by_team
-    }
-```
-
-**Client Logic** (Presentation):
-```gdscript
-extends LogicHandler
-class_name GameClientLogic
-
-var scoreboard_label: Label
-var timer_label: Label
-
-func update():
-    # Read server state
-    var latest_state = ActionNetManager.client.received_state_manager.latest_state
-    if latest_state and latest_state.has("game"):
-        var game_data = latest_state["game"]
-        
-        # Update UI
-        scoreboard_label.text = "Score: %d" % game_data.score
-        timer_label.text = "Time: %.1f" % game_data.timer
-        
-        # Handle team colors
-        update_player_colors(game_data.teams)
-```
-
-### Object Registration Patterns
-
-```gdscript
-func register_game_objects():
-    # Auto-spawn objects (appear automatically)
-    ActionNetManager.register_physics_object("ball", ball_scene)        # auto_spawn = true
-    ActionNetManager.register_physics_object("goalpost", goal_scene)    # auto_spawn = true
-    
-    # Blueprint objects (manual spawning)
-    ActionNetManager.register_physics_object("powerup", powerup_scene)  # auto_spawn = false
-    ActionNetManager.register_physics_object("bullet", bullet_scene)    # auto_spawn = false
-
-func spawn_powerup_at_position(position: Vector2i):
-    # Manual spawning using WorldManager
-    if ActionNetManager.server:
-        var world_manager = ActionNetManager.server.world_manager
-        world_manager.spawn_physics_object("powerup")
-        
-        # Get the spawned object and set its position
-        var powerup = world_manager.physics_objects.get_child(-1)  # Most recent
-        powerup.fixed_position = position
-```
-
-### Static vs Dynamic Objects
-
-```gdscript
-# Dynamic object (moves and collides)
-extends ActionNetPhysObject2D
-class_name MovingPlatform
-
-func _init():
-    super._init(Physics.vec2(640, 360))
-    MASS = 2000  # Has mass - can be moved by collisions
-    shape_type = Physics.ShapeType.RECTANGLE
-    shape_data = {"width": 200 * Physics.SCALE, "height": 50 * Physics.SCALE}
-
-# Static object (collision boundary)
-extends ActionNetPhysObject2D
-class_name Wall
-
-func _init(wall_position: Vector2i):
-    super._init(wall_position)
-    MASS = 0  # Static - never moves
-    shape_type = Physics.ShapeType.RECTANGLE
-    shape_data = {"width": 100 * Physics.SCALE, "height": 400 * Physics.SCALE}
-    auto_spawn = true  # Create automatically
-```
-
-### Input System Flexibility
-
-```gdscript
-func setup_controls():
-    # Raw key codes
-    ActionNetManager.register_key_input("move_left", "pressed", KEY_A)
-    ActionNetManager.register_key_input("move_right", "pressed", KEY_D)
-    ActionNetManager.register_key_input("jump", "just_pressed", KEY_SPACE)
-    
-    # Godot input actions (defined in Input Map)
-    ActionNetManager.register_godot_input("shoot", "just_pressed", "fire")
-    ActionNetManager.register_godot_input("reload", "just_pressed", "reload")
-    
-    # Different input types
-    ActionNetManager.register_key_input("run", "pressed", KEY_SHIFT)         # Held down
-    ActionNetManager.register_key_input("interact", "just_pressed", KEY_E)   # Single press
-    ActionNetManager.register_key_input("menu", "just_released", KEY_ESCAPE) # On release
-```
-
-## ⚽ Soccer Demo
-
-The **ActionNetDemo** addon provides a complete multiplayer soccer game showcasing ActionNet's capabilities.
-
-### Demo Features
-- **Multiplayer Soccer Game**: 2+ players, automatic team assignment, scoring system
-- **Real-time Physics**: Ball kicking, player movement, collision detection
-- **Game State Management**: Kickoffs, goal celebrations, match timer
-- **UI Integration**: Scoreboard, timer, team indicators, goal visuals
-- **Server Authority**: Authoritative scoring and game rules
-- **Auto-Spawn System**: Demonstrates automatic vs manual object creation
-
-### Demo Controls
-- **WASD**: Move player
-- **SPACE**: Kick ball
-- **ESC**: Return to menu / Quit
-- **F11**: Toggle fullscreen
-
-### Running the Demo
-
-1. **Enable both plugins**:
-   - ActionNet (framework)
-   - ActionNetDemo (demo)
-
-2. **Launch the demo**: The demo autoload will present a connection UI
-
-3. **Start a server**: Click "Create Server" (default port 9050)
-
-4. **Connect clients**: Other instances can "Connect to Server" using the host IP
-
-5. **Play soccer**: Game starts automatically when 2+ players join
-
-### Demo Architecture
-
-The soccer demo demonstrates key ActionNet patterns:
-
-#### Object Registration Strategy
-```gdscript
-# Auto-spawning objects (created automatically)
-ActionNetManager.register_physics_object("ball", ball_scene)        # Always present
-ActionNetManager.register_physics_object("goalpost", goal_scene)    # Static world elements
-
-# Blueprint objects (manual spawning available)
-ActionNetManager.register_physics_object("box", box_scene)          # Can be spawned dynamically
-```
-
-#### Game Logic Separation
-- **Server Logic** (`CustomServerLogicHandler`): 
-  - Match rules and flow (waiting, kickoff, playing, goal celebration)
-  - Team assignment and management
-  - Authoritative scoring and goal detection
-  - Player positioning for kickoffs
-  - Match timer and game state transitions
-  
-- **Client Logic** (`CustomClientLogicHandler`): 
-  - UI creation and updates (scoreboard, timer, status)
-  - Visual goal markers and field elements
-  - Team color management
-  - Game state presentation
-
-#### Soccer Object Examples
-
-**Ball Physics** (`Ball`):
-```gdscript
-func _init():
-    super._init(Physics.vec2(640, 360))  # Center field
-    MASS = 4000
-    RESTITUTION = 10  # Low bounce
-    auto_spawn = true  # Always present
-    shape_type = Physics.ShapeType.CIRCLE
-
-func update(delta: int):
-    # Custom drag for realistic ball physics
-    fixed_velocity = fixed_velocity * 990 / 1000
-    super.update(delta)
-```
-
-**Player Object** (`Ship`):
-```gdscript
-func apply_input(input: Dictionary, tick_rate: int):
-    # Movement and rotation
-    if input.get("move_forward", false):
-        var thrust_direction = Physics.rotate_vector(Physics.vec2(1, 0), fixed_rotation)
-        var force = Vector2i(thrust_direction.x * THRUST_FORCE, thrust_direction.y * THRUST_FORCE)
-        fixed_velocity = Physics.apply_force(fixed_velocity, force, MASS, tick_rate)
-    
-    # Ball kicking
-    if input.get("shoot", false) and kick_cooldown <= 0.0:
-        perform_kick()
-        kick_cooldown = max_kick_cooldown
-```
-
-**Static Goal Posts** (`GoalPost`):
-```gdscript
-func _init(goal_position: Vector2i):
-    super._init(goal_position)  # Position set by game logic
-    MASS = 0  # Static - never moves
-    auto_spawn = true  # Created automatically
-    shape_type = Physics.ShapeType.RECTANGLE
-```
-
-#### Team Management
-The server automatically assigns teams:
-- **Blue Team**: Right side of field (cyan color)
-- **Red Team**: Left side of field (red color)
-- **Auto-assignment**: Alternates between teams as players join
-- **Dynamic Colors**: Server logic sets player colors based on team
-
-#### Scoring System
-- **Goal Detection**: Server checks ball position against invisible goal areas
-- **Score Tracking**: Server maintains authoritative score state
-- **Celebrations**: 3-second goal celebration before kickoff reset
-- **Match Timer**: 5-minute matches with automatic game reset
-
-### Key Demo Files
-
-- `main.gd`: Demo setup, object registration, and world creation
-- `server_logic.gd`: Authoritative game rules, scoring, and team management
-- `client_logic.gd`: UI presentation, visual effects, and goal markers
-- `ship_deterministic.gd`: Player object with movement and ball kicking
-- `ball_deterministic.gd`: Soccer ball with realistic physics
-- `goalpost_deterministic.gd`: Static collision boundaries for scoring
-
-## 🔧 Debugging
-
-ActionNet includes comprehensive debugging tools:
-
-### Debug UI
-The framework automatically creates a debug interface showing:
-- **Connection Status**: Server/client state and peer information
-- **Network Statistics**: RTT, packet loss, bandwidth usage
-- **Performance Metrics**: Frame rate, tick rate, simulation time
-- **Object Counts**: Active physics and client objects
-- **RTT Graph**: Visual representation of network latency over time
-- **Sequence Information**: Current sequence numbers and offsets
-
-### Error Handling
-Common error scenarios are handled gracefully:
-- **Connection Failures**: Automatic error popups with retry options
-- **Server Disconnection**: Clean state reset and menu return
-- **Invalid Object Registration**: Console warnings with suggested fixes
-- **Prediction Misses**: Automatic rollback and reconciliation
-- **Port Conflicts**: Clear error messages for server creation issues
-
-### Console Output
-Detailed logging for development:
-```
-[ActionNetManager] Created default world scene.
-[SoccerDemo] Soccer objects registered:
-  - ball (auto_spawn=true): Appears at center
-  - box (auto_spawn=false): Blueprint for manual spawning
-[ActionNetServer] Server created on port 9050
-[SoccerGame] Player 1 joined the game
-[SoccerGame] Player 1 assigned to team BLUE
-[WorldManager] Prediction missed! For sequence 123
-[WorldManager] Reprediction complete. Total process took 2ms
-```
-
-### Performance Monitoring
-Built-in performance tracking:
-- **Physics Simulation Time**: Per-frame physics execution duration
-- **Network Processing Time**: Time spent on networking operations
-- **Reprediction Costs**: Rollback simulation performance impact
-- **Memory Usage**: Object count and state storage metrics
-
-## 🤝 Contributing
-
-ActionNet is designed to be extensible. Common extension points:
-
-- **Custom Physics Shapes**: Extend the `Physics` class for new collision shapes
-- **Additional Input Types**: Expand `InputDefinition` for new input methods
-- **Network Optimizations**: Customize `ActionNetClient`/`ActionNetServer` for specific needs
-- **UI Enhancements**: Extend `ActionNetDebugUI` for additional diagnostic tools
-- **Collision Algorithms**: Implement new collision detection methods in shape classes
-
-### Extending Physics Shapes
-```gdscript
-# Add to Physics class
-enum ShapeType {
-    CIRCLE,
-    RECTANGLE,
-    POLYGON  # New shape type
-}
-
-# Implement in new PolygonPhysics class
-class_name PolygonPhysics
-
-static func check_collision(pos1: Vector2i, vertices1: Array, pos2: Vector2i, vertices2: Array) -> bool:
-    # Implement SAT collision detection
-    pass
-```
-
-### Custom Input Sources
-```gdscript
-# Extend InputDefinition for new input types
-func get_input_value() -> bool:
-    match input_source:
-        "gamepad":
-            return handle_gamepad_input()
-        "mouse":
-            return handle_mouse_input()
-        _:
-            return super.get_input_value()
-```
-
-## 📄 License
-
-ActionNet is provided as-is for educational and development purposes. See the individual files for specific licensing information.
-
-## 🎮 Getting Started
-
-1. **Try the Demo**: Enable both plugins and run the soccer demo to see ActionNet in action
-2. **Read the Code**: Examine the demo implementation for real-world usage patterns
-3. **Build Your Game**: Use ActionNet's object registration and logic handler systems
-4. **Join the Community**: Share your ActionNet creations and improvements
-
-ActionNet provides the foundation for building robust, cheat-resistant multiplayer games in Godot. The comprehensive physics system, client-side prediction, and server authority ensure smooth gameplay while maintaining competitive integrity. The soccer demo showcases real-world usage patterns and serves as a complete reference implementation.
+- **Boundary Handling**: World edge collision with configurable restitution
+- **Angular Physics**: Rotation and angular velocity with drag simulation
+
+**ActionNetPhysObject2D Base Class**
+- Unified interface for all networked physics objects
+- Fixed-point position, velocity, and rotation storage
+- Shape definition system (circle/rectangle with size data)
+- Visual synchronization between physics state and Godot rendering
+- Auto-spawn flag for automatic vs manual object creation
+
+### Networking Architecture
+
+**Client-Server Model**
+- **ActionNetServer**: Authoritative simulation with client management
+- **ActionNetClient**: Local prediction with server reconciliation
+- **Dedicated vs Hosted**: Support for both dedicated servers and host-client configurations
+
+**Advanced Prediction System**
+- **ClientSequenceAdjuster**: Adaptive frame-ahead calculation based on RTT
+- **Dynamic Buffer Management**: Automatically adjusts prediction buffer size
+- **Sequence Synchronization**: Frame-perfect timing with sequence number tracking
+- **Rollback Reconciliation**: Re-simulation when client predictions diverge from server authority
+
+**Connection Management**
+- **ClientConnectionManager**: Multi-stage handshake with RTT measurement
+- **Formal Handshake Process**: Ping measurement, object spawn confirmation, sync establishment
+- **RTT-Based Adaptation**: Continuous adjustment of prediction parameters
+- **Connection State Tracking**: Comprehensive monitoring of network health
+
+**Input Processing System**
+- **InputRegistry**: 5-second rolling buffer of sequenced input data
+- **Input Definition System**: Flexible mapping of Godot actions and raw key codes
+- **Sequence-Based Retrieval**: Exact and fallback input lookup for rollback simulation
+- **Client/Server Separation**: Independent input storage for prediction and authority
+
+**State Management**
+- **WorldStateRegistry**: Rolling buffer of world snapshots for rollback
+- **ReceivedStateManager**: Separate "ghost" world mirroring server authority
+- **State Comparison**: Automated detection of prediction mismatches
+- **Dual World Simulation**: Client maintains both predicted and authoritative world states
+
+**Network Protocols**
+- **Unreliable State Updates**: High-frequency world state synchronization
+- **Reliable Commands**: Spawn requests and critical game events
+- **Sequence Numbering**: Frame-perfect synchronization across all clients
+- **RTT Measurement**: Continuous latency monitoring with ping/pong system
+
+### Logic Handler System
+
+**Extensible Game Logic Architecture**
+- **LogicHandler Base Class**: Standardized injection point for custom game logic
+- **Timing Guarantees**: Server logic runs after physics/before network send
+- **Client Logic**: Executes after network processing/before rendering
+- **Authority Separation**: Server handles rules, client handles presentation
+
+**Custom Game Integration**
+- Server logic handlers access authoritative world state
+- Client logic handlers receive latest server state for UI updates
+- Clean separation between game rules and presentation layer
+- Framework-managed execution timing for optimal networking
+
+## 🎮 User Interface Systems
+
+### Connection Management UI
+
+**ActionNetManagerUI**
+- **Complete Connection Interface**: Ready-to-use multiplayer lobby
+- **Hosting Options**: Host game, join game, or create dedicated server
+- **Smart Connectivity**: Hostname resolution, IP validation, port configuration
+- **Error Handling**: User-friendly connection failure messages
+- **Workflow Management**: Seamless transition from menu to gameplay
+
+### Professional Debug Tools
+
+**ActionNetDebugUI (F9 Toggle)**
+- **Real-Time Network Statistics**: RTT, packet loss, bandwidth monitoring
+- **Sequence Synchronization Display**: Frame-ahead calculation, adjustment events
+- **Connection State Monitoring**: Handshake progress, client management
+- **Performance Metrics**: Physics timing, collision counts, memory usage
+- **Input System Status**: Registry contents, sequence mapping, buffer states
+
+**RTTGraphControl**
+- **Visual RTT Tracking**: Real-time latency graphing with moving averages
+- **Adaptive Y-Axis Scaling**: Automatic range adjustment based on network conditions
+- **Bucket-Based Sampling**: Efficient storage of historical network data
+- **Performance Indicators**: Visual baseline, current value, and trend analysis
+
+### Debug Visualization
+
+**Dual World Rendering**
+- **Client Prediction Visualization**: See predicted vs authoritative object states
+- **Ghost Object System**: Visual representation of server authority
+- **Prediction Mismatch Highlighting**: Automatic rollback event visualization
+- **Toggleable Overlays**: Show/hide debug objects without affecting gameplay
+
+## 🔧 Core Utilities
+
+**ActionNetClock**
+- **Deterministic Timing**: Configurable tick rate with millisecond precision
+- **Sequence Generation**: Frame-perfect numbering for synchronization
+- **Timer Management**: Centralized timing for all framework systems
+
+**Input Definition System**
+- **Flexible Input Mapping**: Support for Godot actions and raw key codes
+- **Input Type Handling**: pressed, just_pressed, just_released states
+- **Runtime Registration**: Dynamic input system configuration
+
+**Object Registration Framework**
+- **Scene-Based Factory System**: PackedScene registration for network object creation
+- **Auto-Spawn vs Blueprint Patterns**: Automatic world population vs manual spawning
+- **Type-Safe Object Creation**: Centralized object instantiation with proper networking setup
+
+## ⚽ Demonstration Implementation
+
+The **ActionNetDemo** addon provides a complete multiplayer soccer game showcasing framework capabilities:
+
+### Architecture Demonstration
+- **Server Authority**: Game state management, team assignment, scoring system
+- **Client Presentation**: UI updates, visual effects, input handling
+- **Object Patterns**: Auto-spawning ball/goals, manual box spawning, player management
+- **Logic Separation**: Server rules vs client presentation in separate handler classes
+
+### Real-World Features
+- **Dynamic Team Assignment**: Automatic player team balancing
+- **Game State Management**: Match phases, kickoffs, goal celebrations
+- **Physics Integration**: Ball kicking, collision-based scoring, boundary handling
+- **UI Integration**: Scoreboard, timer, team indicators, connection management
+
+### Learning Resource
+The demo serves as a comprehensive reference implementation showing:
+- Proper object registration patterns
+- Server/client logic separation
+- Input system configuration
+- Custom physics object implementation
+- Network lifecycle management
+
+## 🔬 Technical Specifications
+
+### Performance Characteristics
+- **Tick Rate**: 60Hz default (configurable)
+- **Input Buffer**: 5-second rolling window (300 frames at 60Hz)
+- **State History**: 2-second rollback capability (120 world snapshots)
+- **RTT Adaptation**: Dynamic prediction buffer (1-60 frames based on latency)
+
+### Platform Compatibility
+- **Deterministic Across Platforms**: Fixed-point arithmetic ensures consistency
+- **Cross-Platform Networking**: Godot's ENet integration
+- **Resolution Independent**: Scalable coordinate system
+
+### Memory Management
+- **Efficient State Storage**: Circular buffers for input and world state history
+- **Object Pooling**: Reusable physics object instances
+- **Automatic Cleanup**: Connection-based resource management
+
+## 🎯 Framework Capabilities
+
+ActionNet provides a **complete multiplayer solution** rather than just networking primitives:
+
+✅ **Drop-in Multiplayer**: Add ActionNet and immediately have working multiplayer menus
+✅ **Production-Ready Networking**: Advanced prediction with professional debugging tools
+✅ **Deterministic Physics**: Cheat-resistant, consistent physics across all clients
+✅ **Professional UI**: Complete connection interface with error handling
+✅ **Extensible Architecture**: Clean injection points for custom game logic
+✅ **Performance Monitoring**: Built-in tools for optimization and diagnostics
+
+ActionNet transforms multiplayer development from "networking library + months of infrastructure work" into "enable plugin + implement game logic". The framework handles the complex networking, physics, and UI systems while providing clean extension points for game-specific functionality.
 
 ---
 
-**Happy Networking! ⚽🎮**
+**Ready for Production Multiplayer Games** 🚀
