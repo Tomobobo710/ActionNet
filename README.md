@@ -10,12 +10,11 @@
 
 ## 🚀 Framework Overview
 
-ActionNet delivers a comprehensive multiplayer framework consisting of four integrated systems:
+ActionNet delivers a comprehensive multiplayer framework consisting of these integrated systems:
 
 - **Deterministic Physics Engine**: Fixed-point 2D physics with circle/rectangle collision detection
 - **Server-Authoritative Networking**: Client prediction with rollback reconciliation
 - **Complete UI Solution**: Ready-to-use connection interface and debug visualization
-- **Production Tools**: Performance monitoring, state visualization, and diagnostic systems
 
 ## 📦 Installation
 
@@ -243,13 +242,4 @@ The demo serves as a comprehensive reference implementation showing:
 
 ## 🎯 Framework Capabilities
 
-ActionNet provides a **complete multiplayer solution** rather than just networking primitives:
-
-✅ **Drop-in Multiplayer**: Add ActionNet and immediately have working multiplayer menus
-✅ **Production-Ready Networking**: Advanced prediction with professional debugging tools
-✅ **Deterministic Physics**: Cheat-resistant, consistent physics across all clients
-✅ **Professional UI**: Complete connection interface with error handling
-✅ **Extensible Architecture**: Clean injection points for custom game logic
-✅ **Performance Monitoring**: Built-in tools for optimization and diagnostics
-
-ActionNet transforms multiplayer development from "networking library + months of infrastructure work" into "enable plugin + implement game logic". The framework handles the complex networking, physics, and UI systems while providing clean extension points for game-specific functionality.
+ActionNet is still in it's infancy and is provided as a glimpse into how server authoritative networking could be implemented in a pure GDScript environment. It's mostly proof-of-concept at this stage, but theoretically complete.
