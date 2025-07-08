@@ -27,8 +27,8 @@
 
 ### Networking
 - **Client-Server Model**: Dedicated server with multiple client support
-- **State Prediction**: Client-side prediction with server reconciliation
-- **Input Lag Compensation**: Smooth input handling with network delay
+- **Client-Side Prediction**: Clients simulate physics locally for responsive gameplay
+- **Server Reconciliation**: Rollback and re-prediction when client differs from server
 - **Connection Management**: Automatic client connection handling
 - **Sequence Management**: Frame-perfect synchronization with sequence numbers
 - **State Compression**: Efficient world state transmission
