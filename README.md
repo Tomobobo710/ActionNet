@@ -242,4 +242,4 @@ The demo serves as a comprehensive reference implementation showing:
 
 ## 🎯 Framework Capabilities
 
-ActionNet is still in it's infancy and is provided as a glimpse into how server authoritative networking could be implemented in a pure GDScript environment. It's mostly proof-of-concept at this stage, but theoretically complete.
+ActionNet is still in it's infancy and is provided as a glimpse into how server authoritative networking could be implemented in a pure GDScript environment. It's mostly proof-of-concept at this stage, but theoretically complete enough to implement a real-time multiplayer experience. Documentation is far from complete or comprehensive, but I hope to improve this and other aspects of the framework in time.
