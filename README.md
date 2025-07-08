@@ -114,11 +114,25 @@ ActionNet delivers a comprehensive multiplayer framework consisting of four inte
 - **State Comparison**: Automated detection of prediction mismatches
 - **Dual World Simulation**: Client maintains both predicted and authoritative world states
 
-**Network Protocols**
-- **Unreliable State Updates**: High-frequency world state synchronization
-- **Reliable Commands**: Spawn requests and critical game events
+**Transport Layer Integration**
+- **ENet Foundation**: Built on Godot's ENetMultiplayerPeer for reliable UDP networking
+- **MultiplayerAPI Integration**: Leverages Godot's built-in networking with custom RPC patterns
+- **Cross-Platform Compatibility**: ENet provides consistent networking across all Godot platforms
+- **Connection Management**: ENet handles low-level connection establishment, timeouts, and cleanup
+
+**RPC Communication Patterns**
+- **`receive_world_state`**: Unreliable, authority-to-clients broadcast of complete world snapshots
+- **`receive_input`**: Unreliable, client-to-server input commands with sequence numbers
+- **`request_spawn`**: Reliable, client-to-server object creation requests
+- **`receive_ping/receive_pong`**: Unreliable, bidirectional RTT measurement system
+- **Authority Configuration**: Server marked as authority, clients as peers for proper RPC routing
+
+**Network Protocol Design**
+- **Unreliable State Updates**: High-frequency world state synchronization (60Hz)
+- **Reliable Commands**: Spawn requests and critical game events use guaranteed delivery
 - **Sequence Numbering**: Frame-perfect synchronization across all clients
-- **RTT Measurement**: Continuous latency monitoring with ping/pong system
+- **RTT Measurement**: Continuous latency monitoring with ping/pong RPC system
+- **Multiplayer Peer Management**: ENet handles client connections, disconnections, and peer identification
 
 ### Logic Handler System
 
