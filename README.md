@@ -1,4 +1,4 @@
-# ActionNet
+# ActionNetGD
 
 **ActionNet** is a server-authoritative 2D deterministic physics engine and networking framework built for Godot written in GDScript. It provides a complete multiplayer solution with client-side prediction, deterministic physics simulation, debugging tools and a game-ready network connection UI.
 
