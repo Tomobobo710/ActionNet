@@ -10,6 +10,9 @@ enum ShapeType {
 	RECTANGLE
 }
 
+# FRAMEWORK: Converts pixel coordinates to ActionNet's internal physics coordinates
+# Usage: Physics.vec2(640, 360) = center of 1280x720 screen
+# The SCALE factor (1000) provides sub-pixel precision for smooth physics
 static func vec2(x: int, y: int) -> Vector2i:
 	return Vector2i(x * SCALE, y * SCALE)
 

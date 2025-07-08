@@ -157,10 +157,18 @@ func _on_tick(clock_sequence: int) -> void:
 	
 	processed_state = world_manager.get_world_state()
 	
-	# processed_state is like, super valuable
-	# it's the result of all the networking work
-	# before we send the state to the client, we can jump in right here and execute custom logic that a developer implements
-	
+	# FRAMEWORK: Server Logic Handler Injection Point
+	# 
+	# TIMING: After physics update, before sending state to clients
+	# CONTEXT: Authoritative world state is finalized, ready for game logic
+	# PURPOSE: Let developer implement server-side game logic (scoring, AI, rules, etc.)
+	# 
+	# processed_state contains the authoritative game state with:
+	# - All object positions/velocities after physics simulation
+	# - Processed player inputs
+	# - Collision results
+	# 
+	# Perfect time for game-specific server logic like score calculation, win conditions
 	logic_handler.update()
 	
 	# Send world state to all clients

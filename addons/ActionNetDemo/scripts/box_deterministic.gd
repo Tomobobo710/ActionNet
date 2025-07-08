@@ -8,11 +8,11 @@ const BOX_RESTITUTION = 10
 
 func _init():
 	super._init()
-	fixed_position = Physics.vec2(150,150)
+	# Position will be set when instantiating
 	sprite_texture = load("res://rectangle_texture.png")
 	MASS = BOX_MASS
 	RESTITUTION = BOX_RESTITUTION
-	auto_spawn = true
+	auto_spawn = false  # Disabled auto-spawn - no floating box
 	shape_type = Physics.ShapeType.RECTANGLE
 	# Initialize shape_data with width and height for rectangle
 	shape_data = {

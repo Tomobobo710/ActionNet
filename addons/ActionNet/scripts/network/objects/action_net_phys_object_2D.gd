@@ -27,8 +27,12 @@ var auto_spawn: bool = false
 var shape_type: Physics.ShapeType = Physics.ShapeType.CIRCLE
 var shape_data: Dictionary = {"radius": BASE_SIZE / 2}
 
+# FRAMEWORK: Object positioning system
+# Objects MUST set their position during _init() via this constructor
+# The position passed here becomes the object's location in the world
+# Default (640, 360) = screen center for 1280x720 resolution
 func _init(new_fixed_position: Vector2i = Physics.vec2(640, 360), new_fixed_velocity: Vector2i = Physics.vec2(0, 0)):
-	fixed_position = new_fixed_position
+	fixed_position = new_fixed_position  # This is the object's world position
 	fixed_velocity = new_fixed_velocity
 
 func _ready():

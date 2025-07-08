@@ -138,10 +138,18 @@ func _on_tick(clock_sequence: int) -> void:
 	poll()
 	handle_input()
 	
-	# At this point, we should have our results of all the stuff related to networking
-	# like, we have a world registry in ReceivedStateManager and WorldManager
-	# and we hope that should be enough info to do whatever the developer needs with their game 
-	# so we can then give control over to the developer for their logic processing
+	# FRAMEWORK: Client Logic Handler Injection Point
+	# 
+	# TIMING: After all networking/input processing, before rendering
+	# CONTEXT: World state is up-to-date, predictions processed, input handled
+	# PURPOSE: Let developer implement client-side game logic (UI updates, effects, etc.)
+	# 
+	# At this point we have:
+	# - Latest world state from server (via ReceivedStateManager)
+	# - Local prediction results (via WorldManager)
+	# - Processed input for this frame
+	# 
+	# Perfect time for game-specific client logic like scoreboard updates
 	logic_handler.update()
 
 func handle_input() -> void:

@@ -7,7 +7,7 @@ const BALL_MASS = 4000
 const BALL_RESTITUTION = 10
 
 func _init():
-	super._init()
+	super._init(Physics.vec2(640, 360))  # Spawn at center
 	sprite_texture = load("res://ball_texture.png")
 	MASS = BALL_MASS
 	RESTITUTION = BALL_RESTITUTION

@@ -179,6 +179,17 @@ func perform_reprediction(server_state: Dictionary, client_id: int) -> void:
 	
 	print("[WorldManager] Reprediction complete. Total process took ", total_time, "ms. Current frame for world manager is: ", sequence)
 
+# AUTO-SPAWN SYSTEM: Called during world initialization
+# Loops through ALL registered physics objects and decides which to create automatically
+# 
+# HOW IT WORKS:
+# 1. Check every registered object type
+# 2. Create a temporary instance to check its auto_spawn flag
+# 3. If auto_spawn = true: Create the object in the world
+# 4. If auto_spawn = false: Skip it (available for manual spawning later)
+#
+# This allows mixing automatic object creation (static world elements)
+# with manual spawning (dynamic objects like pickups, projectiles)
 func auto_spawn_physics_objects() -> void:
 	if not manager:
 		return
@@ -186,9 +197,10 @@ func auto_spawn_physics_objects() -> void:
 	for object_type in manager.registered_physics_objects.keys():
 		var scene = manager.get_physics_object_scene(object_type)
 		var temp_instance = scene.instantiate()
+		# Check if this object type wants to be created automatically
 		if temp_instance.auto_spawn:
-			spawn_physics_object(object_type)
-		temp_instance.queue_free()
+			spawn_physics_object(object_type)  # Create it in the world
+		temp_instance.queue_free()  # Clean up test instance
 
 func spawn_client_object(id: int) -> void:
 	if not manager:
@@ -206,21 +218,35 @@ func spawn_client_object(id: int) -> void:
 			collision_manager.register_object(client_object)
 		emit_signal("object_spawned", client_object, "client")
 
+# PHYSICS OBJECT SPAWNING: Creates an instance of a registered object type
+# This is the "factory" that actually creates objects in the world
+#
+# OBJECT POSITIONING: The object's position comes from its _init() method
+# Objects set their position via super._init(Physics.vec2(x, y))
+# ActionNet respects the position set in the object's constructor
+#
+# NAMING: Objects get unique names (type1, type2, etc.) for network synchronization
 func spawn_physics_object(object_type: String) -> void:
 	if not manager:
 		return
 		
 	var object_scene = manager.get_physics_object_scene(object_type)
 	if object_scene:
+		# Create instance - position comes from object's _init() method
 		var physics_object = object_scene.instantiate()
-		# Find existing objects with the same type and get the next number
+		
+		# Generate unique name for network synchronization
 		var count = 1
 		while physics_objects.has_node(object_type + str(count)):
 			count += 1
 		physics_object.name = object_type + str(count)
-		physics_object.set_color(Color.GREEN)
+		
+		# ActionNet manages these properties automatically
+		physics_object.set_color(Color.GREEN)  # Default debug color
 		physics_object.set_z_index(1)
 		physics_object.set_meta("type", object_type)
+		
+		# Add to world - object appears at its _init() position
 		physics_objects.add_child(physics_object)
 		if collision_manager:
 			collision_manager.register_object(physics_object)
